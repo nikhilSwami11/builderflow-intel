@@ -1,6 +1,17 @@
 import { ArrowUpRight, Lightbulb } from "lucide-react";
 import Link from "next/link";
 
+export function DiscussButton({ question }: { question: string }) {
+  return (
+    <Link
+      href={`/chat?q=${encodeURIComponent(question)}`}
+      className="inline-flex h-6 items-center gap-1 rounded-md border border-rule-strong bg-sheet px-2 text-[12px] font-medium text-text transition-colors duration-150 hover:bg-accent hover:text-white"
+    >
+      Discuss <ArrowUpRight size={12} aria-hidden />
+    </Link>
+  );
+}
+
 /** The one idea marker, used wherever an item has an idea attached: a yellow bulb that links
  *  to the idea. Pass `question` to add a Discuss button that opens the chat with that item
  *  and its idea already in the question. */
@@ -19,14 +30,7 @@ export function IdeaTag({ href, title, question }: { href?: string; title?: stri
           {bulb}
         </span>
       )}
-      {question && (
-        <Link
-          href={`/chat?q=${encodeURIComponent(question)}`}
-          className="inline-flex h-6 items-center gap-1 rounded-md border border-rule-strong bg-sheet px-2 text-[12px] font-medium text-text transition-colors duration-150 hover:bg-accent hover:text-white"
-        >
-          Discuss <ArrowUpRight size={12} aria-hidden />
-        </Link>
-      )}
+      {question && <DiscussButton question={question} />}
     </span>
   );
 }

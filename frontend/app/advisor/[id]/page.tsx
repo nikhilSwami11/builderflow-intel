@@ -2,12 +2,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { Cites } from "@/components/cite";
 import { CategoryChip } from "@/components/category-chip";
+import { Cites } from "@/components/cite";
+import { DiscussButton } from "@/components/idea-tag";
 import { Section } from "@/components/section";
 import { StateChip } from "@/components/state-chip";
 import { bundle, THEME_LABEL, TIER_LABEL } from "@/lib/data";
-import type { GapRow } from "@/lib/types";
+import { discussQuestion, evidenceFor } from "@/lib/evidence";
+import type { GapRow, Messaging, PainPoint } from "@/lib/types";
 
 function GapList({ rows }: { rows: GapRow[] }) {
   return (
@@ -23,6 +25,58 @@ function GapList({ rows }: { rows: GapRow[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function PainList({ rows }: { rows: PainPoint[] }) {
+  return (
+    <ul className="divide-y divide-rule">
+      {rows.map((p) => (
+        <li key={p.id} className="flex flex-wrap items-start gap-x-4 gap-y-1.5 py-3 first:pt-0 last:pb-0">
+          <span className="min-w-0 flex-1 basis-72 text-[14px]">
+            <span className="mr-2 rounded bg-accent-wash px-1.5 py-0.5 text-[12px] font-medium">{THEME_LABEL[p.theme]}</span>
+            {p.description}
+          </span>
+          <span className="text-[13px] text-text-2">{p.companies.join(", ") || "Industry-wide"}</span>
+          <Cites citations={[p.citation]} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MessagingList({ rows }: { rows: Messaging[] }) {
+  return (
+    <ul className="divide-y divide-rule">
+      {rows.map((m) => (
+        <li key={m.id} className="py-3 first:pt-0 last:pb-0">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-[14px] font-semibold">{m.topic}</h3>
+            <Cites citations={m.citations} />
+          </div>
+          <p className="mt-1 text-[13px] text-text-2">
+            <span className="font-medium text-text">Website: </span>
+            {m.websiteSays ?? "not found in our data"}
+          </p>
+          <p className="mt-1 text-[13px] text-text-2">
+            <span className="font-medium text-text">Portal: </span>
+            {m.portalSays ?? "not found in our data"}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MoreRows({ count, label, children }: { count: number; label: string; children: React.ReactNode }) {
+  if (!count) return null;
+  return (
+    <details className="mt-4 border-t border-rule pt-3">
+      <summary className="cursor-pointer text-[13px] font-medium text-text-2 hover:text-text">
+        Also attached by the pipeline ({count} more {label})
+      </summary>
+      <div className="mt-3">{children}</div>
+    </details>
   );
 }
 
@@ -44,80 +98,52 @@ async function Recommendation({ params }: { params: Promise<{ id: string }> }) {
   const rec = bundle.recommendations.find((r) => r.id === id);
   if (!rec) notFound();
 
-  const ids = (kind: string) => rec.evidence.filter((e) => e.kind === kind).map((e) => e.id);
-  const gaps = bundle.gapMatrix.filter((g) => ids("gap").includes(g.id));
-  const pains = bundle.painPoints.filter((p) => ids("pain").includes(p.id));
-  const prices = bundle.pricing.filter((p) => ids("pricing").includes(p.id));
-  const msgs = bundle.messaging.filter((m) => ids("messaging").includes(m.id));
-  // The pipeline often attaches the whole matrix. Rank rows by keyword overlap with the
-  // recommendation's own text (boosting rows that aren't fully covered); lead with the best few
-  // and fold the rest into "Also considered".
-  const text = `${rec.title} ${rec.detail}`.toLowerCase();
-  const words = (f: string) => [...new Set(f.toLowerCase().match(/[a-z]{5,}/g) ?? [])];
-  const score = (g: GapRow) => words(g.feature).filter((w) => text.includes(w.slice(0, 6))).length + (g.builderflowHas !== "yes" ? 2 : 0);
-  const ranked = [...gaps].sort((x, y) => score(y) - score(x));
-  const gapMain = ranked.filter((g) => score(g) >= 2).slice(0, 5);
-  const gapShown = gapMain.length ? gapMain : ranked.slice(0, 3);
-  const gapMore = ranked.filter((g) => !gapShown.includes(g));
-  const notes = rec.evidence.filter((e) => e.kind === "note");
+  const ev = evidenceFor(rec);
+  // When nothing matched closely, still show a few of what was attached rather than an empty page.
+  const gaps = ev.gaps.length ? ev.gaps : ev.more.gaps.slice(0, 3);
+  const gapsRest = ev.gaps.length ? ev.more.gaps : ev.more.gaps.slice(3);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link href="/advisor" className="inline-flex items-center gap-1.5 text-[13px] text-text-2 hover:text-accent">
+      <Link href="/advisor" className="inline-flex items-center gap-1.5 text-[13px] text-text-2 hover:text-text">
         <ArrowLeft size={14} aria-hidden /> Growth Advisor
       </Link>
 
-      <header className="border border-rule-strong bg-sheet px-5 py-5">
+      <header className="rounded-xl border border-rule bg-sheet px-5 py-5">
         <CategoryChip category={rec.category} />
         <h1 className="mt-2 text-[26px] leading-tight font-semibold tracking-tight text-balance">{rec.title}</h1>
         <p className="mt-3 max-w-[68ch] text-[15px] leading-relaxed">{rec.detail}</p>
-        <div className="mt-4 flex items-center gap-3 text-[13px] text-text-2">
-          Sources <Cites citations={rec.citations} />
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <Cites citations={rec.citations} />
+          <DiscussButton question={discussQuestion(rec)} />
         </div>
       </header>
 
-      <h2 className="text-[13px] font-medium text-text-2">
-        Backed by <span className="tnum">{gaps.length + pains.length + prices.length + msgs.length + notes.length}</span> pieces of evidence
-      </h2>
-
       {gaps.length > 0 && (
-        <Section title={`Gap matrix rows (${gapMain.length || Math.min(3, gaps.length)} most relevant of ${gaps.length})`}>
-          <GapList rows={gapShown} />
-          {gapMore.length > 0 && (
-            <details className="mt-4 border-t border-rule pt-3">
-              <summary className="cursor-pointer text-[13px] font-medium text-accent">Also considered ({gapMore.length} more rows)</summary>
-              <div className="mt-3">
-                <GapList rows={gapMore} />
-              </div>
-            </details>
-          )}
+        <Section title={`Gaps it addresses (${gaps.length})`}>
+          <GapList rows={gaps} />
+          <MoreRows count={gapsRest.length} label="gap rows">
+            <GapList rows={gapsRest} />
+          </MoreRows>
         </Section>
       )}
 
-      {pains.length > 0 && (
-        <Section title={`Pain points (${pains.length})`}>
-          <ul className="divide-y divide-rule">
-            {pains.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-start gap-x-4 gap-y-1.5 py-3 first:pt-0 last:pb-0">
-                <span className="min-w-0 flex-1 basis-72 text-[14px]">
-                  <span className="mr-2 rounded bg-accent-wash px-1.5 py-0.5 text-[12px] font-medium text-accent">{THEME_LABEL[p.theme]}</span>
-                  {p.description}
-                </span>
-                <span className="text-[13px] text-text-2">{p.companies.join(", ") || "Industry-wide"}</span>
-                <Cites citations={[p.citation]} />
-              </li>
-            ))}
-          </ul>
+      {ev.pains.length > 0 && (
+        <Section title={`Complaints behind it (${ev.pains.length})`}>
+          <PainList rows={ev.pains} />
+          <MoreRows count={ev.more.pains.length} label="complaints">
+            <PainList rows={ev.more.pains} />
+          </MoreRows>
         </Section>
       )}
 
-      {prices.length > 0 && (
-        <Section title="Pricing" note="Hand-verified. Full tables are on the Pricing sheet.">
+      {ev.pricing.length > 0 && (
+        <Section title="Pricing it relies on">
           <div className="grid gap-4 sm:grid-cols-2">
-            {prices.map((co) => (
-              <div key={co.id} className="border border-rule">
+            {ev.pricing.map((co) => (
+              <div key={co.id} className="rounded-lg border border-rule">
                 <div className="flex items-center justify-between border-b border-rule px-3 py-2 text-[14px] font-semibold">
-                  {co.name} <Cites citations={[co.citation]} />
+                  {co.name} <Cites citations={[co.citation]} label={false} />
                 </div>
                 <table className="w-full text-[13px]">
                   <tbody className="divide-y divide-rule">
@@ -135,36 +161,12 @@ async function Recommendation({ params }: { params: Promise<{ id: string }> }) {
         </Section>
       )}
 
-      {msgs.length > 0 && (
-        <Section title={`Messaging inconsistencies (${msgs.length})`}>
-          <ul className="divide-y divide-rule">
-            {msgs.map((m) => (
-              <li key={m.id} className="py-3 first:pt-0 last:pb-0">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-[14px] font-semibold">{m.topic}</h3>
-                  <Cites citations={m.citations} />
-                </div>
-                <p className="mt-1 text-[13px] text-text-2">
-                  <span className="font-medium text-text">Website: </span>
-                  {m.websiteSays ?? "not found in our data"}
-                </p>
-                <p className="mt-1 text-[13px] text-text-2">
-                  <span className="font-medium text-text">Portal: </span>
-                  {m.portalSays ?? "not found in our data"}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {notes.length > 0 && (
-        <Section title="Other evidence">
-          <ul className="list-disc space-y-1 pl-5 text-[14px]">
-            {notes.map((n, i) => (
-              <li key={i}>{n.label}</li>
-            ))}
-          </ul>
+      {ev.messaging.length > 0 && (
+        <Section title={`Messaging issues it fixes (${ev.messaging.length})`}>
+          <MessagingList rows={ev.messaging} />
+          <MoreRows count={ev.more.messaging.length} label="messaging issues">
+            <MessagingList rows={ev.more.messaging} />
+          </MoreRows>
         </Section>
       )}
     </div>
