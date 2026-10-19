@@ -37,19 +37,23 @@ The README must open with this reasoning.
 - Optional extras, done last: flow map + Mermaid diagrams, chat screenshot fallback.
 
 ## Stack
-- Python 3.11+, LangGraph pipeline, Pydantic for every structured LLM output
+- Python 3.11+, Pydantic for every structured LLM output
+- Pipeline is a plain cached function chain, not a LangGraph StateGraph -- cut in phase 8.
+  It's a straight sequence with no branching/fan-out, and intel/cache.py already makes
+  re-runs free; a graph framework would add indirection without adding capability. Dropped
+  langgraph from requirements.txt accordingly.
 - Streamlit UI (custom theme in .streamlit/config.toml)
-- Chroma for vectors
-- Playwright for JS-rendered pages, Tavily for search
-- OpenAI API: mini vision model for screenshots, mini chat model for analysis nodes;
-  growth_advisor node uses gpt-5
+- Chroma for vectors (RAG over everything the pipeline produces, phase 7)
+- Playwright for JS-rendered pages, Tavily for search (cached queries + live chat fallback)
+- OpenAI API: mini vision model for screenshots, mini model for collect/extract/market/
+  analyze/chat; growth_advisor node uses gpt-5 (the only node that doesn't use the mini model)
 - Keys in .env (never commit it)
 
 ## Repo layout
 ```
 app.py                      Streamlit entry
 intel/
-  graph.py                  LangGraph wiring
+  graph.py                  pipeline entrypoint (plain function chain, see Stack note above)
   ingest.py                 Builderflow ingestion (guide, site, screenshots)
   nodes/                    one file per pipeline node
   schemas.py                Pydantic models
@@ -132,12 +136,12 @@ Chat = RAG over everything with citations and live search fallback.
 - UI: `streamlit run app.py`
 
 ## Build phases (update the checkboxes as you go)
-- [ ] 1. Scaffold, requirements, cache, schemas
-- [ ] 2. Builderflow ingestion: guide conversion, website text, vision pass, app_summary
-- [ ] 3. collect + extract: one competitor end to end, then the other two, plus Builderflow site pages
-- [ ] 4. market node (trends, pain points, reviews)
-- [ ] 5. analyze + growth_advisor
-- [ ] 6. Streamlit UI tabs
-- [ ] 7. Chat with RAG and citations
-- [ ] 8. README with architecture diagram, offline demo run on cached data
+- [x] 1. Scaffold, requirements, cache, schemas
+- [x] 2. Builderflow ingestion: guide conversion, website text, vision pass, app_summary
+- [x] 3. collect + extract: one competitor end to end, then the other two, plus Builderflow site pages
+- [x] 4. market node (trends, pain points, reviews)
+- [x] 5. analyze + growth_advisor
+- [x] 6. Streamlit UI tabs
+- [x] 7. Chat with RAG and citations
+- [x] 8. README with architecture diagram, offline demo run on cached data
 - [ ] Extras: flow map, more competitors, chat screenshot fallback
