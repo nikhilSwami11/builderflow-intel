@@ -105,7 +105,7 @@ export default function Overview() {
         <ul className="divide-y divide-rule">
           {quickWins.map((r) => (
             <li key={r.id} className="py-3 first:pt-0 last:pb-0">
-              <Link href="/advisor" className="group flex items-start justify-between gap-4">
+              <Link href={`/advisor/${r.id}`} className="group flex items-start justify-between gap-4">
                 <span>
                   <span className="block text-[14px] font-medium group-hover:text-blue">{r.title}</span>
                   <span className="mt-0.5 line-clamp-2 block max-w-[80ch] text-[13px] text-text-2">{r.detail}</span>
