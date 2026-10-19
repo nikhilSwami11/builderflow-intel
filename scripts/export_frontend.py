@@ -9,6 +9,10 @@ Run: python scripts/export_frontend.py
 import json
 import re
 import shutil
+import ssl
+import urllib.error
+import urllib.request
+from urllib.parse import urljoin, urlparse
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,6 +22,8 @@ ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "data" / "cache"
 OUT = ROOT / "frontend" / "data" / "bundle.json"
 SCREENS_OUT = ROOT / "frontend" / "public" / "screens"
+NEWS_OUT = ROOT / "frontend" / "public" / "news"
+NEWS_META = ROOT / "frontend" / "data" / "news_meta.json"
 PRICING_ORDER = ["builderflow", "companycam", "jobnimbus", "buildertrend", "roofr", "jobtread"]
 
 _screen_cache: dict[str, str | None] = {}
@@ -80,6 +86,66 @@ def price_range(plans: list[dict]) -> dict | None:
         highs.append(max(nums))
         plus = plus or bool(re.search(r"\$[\d,]+\+", head))
     return {"min": min(lows), "max": max(highs), "plus": plus} if lows else None
+
+
+_UA = {"User-Agent": "Mozilla/5.0 (compatible; builderflow-intel export)"}
+
+try:  # the macOS python.org build ships without a CA bundle; certifi (an openai dependency) has one
+    import certifi
+
+    _CTX = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _CTX = ssl.create_default_context()
+
+
+def _meta(html: str, prop: str) -> str | None:
+    for pat in (
+        rf'<meta[^>]+(?:property|name)=["\']{prop}["\'][^>]+content=["\']([^"\']+)',
+        rf'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']{prop}["\']',
+    ):
+        if m := re.search(pat, html, re.I):
+            return m.group(1).strip()
+    return None
+
+
+def fetch_news_meta(url: str) -> dict:
+    """Headline + preview image for a market-trend article. Two attempts, then give up (the UI
+    falls back to a text card). Results are cached in frontend/data/news_meta.json so re-runs
+    make no requests. Images are downloaded locally rather than hot-linked."""
+    cache = json.loads(NEWS_META.read_text()) if NEWS_META.exists() else {}
+    if url in cache:
+        return cache[url]
+    meta: dict = {"title": None, "image": None}
+    cacheable = False  # only remember results from a request that completed (a blocked site
+    for attempt in range(2):  # is remembered; a network/cert error is retried next run)
+        try:
+            req = urllib.request.Request(url, headers=_UA)
+            html = urllib.request.urlopen(req, timeout=8, context=_CTX).read(600_000).decode("utf-8", "ignore")
+            meta["title"] = _meta(html, "og:title")
+            img = _meta(html, "og:image")
+            if img:
+                img = urljoin(url, img)
+                resp = urllib.request.urlopen(urllib.request.Request(img, headers=_UA), timeout=10, context=_CTX)
+                ctype = resp.headers.get_content_type()
+                data = resp.read(3_000_000)
+                if ctype.startswith("image/") and len(data) > 15_000:  # tiny files are blank placeholders
+                    ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}.get(ctype, ".jpg")
+                    NEWS_OUT.mkdir(parents=True, exist_ok=True)
+                    name = slug(urlparse(url).netloc + urlparse(url).path)[:60] + ext
+                    (NEWS_OUT / name).write_bytes(data)
+                    meta["image"] = f"/news/{name}"
+            cacheable = True
+            break
+        except urllib.error.HTTPError as e:  # 403 etc.: the site blocks us, remember that
+            print(f"  news meta attempt {attempt + 1} blocked ({e.code}) for {url[:70]}")
+            cacheable = True
+        except Exception as e:  # blocked (403), timeout, bad image: log and fall back
+            print(f"  news meta attempt {attempt + 1} failed for {url[:70]}: {e}")
+    if cacheable:
+        cache[url] = meta
+        NEWS_META.parent.mkdir(parents=True, exist_ok=True)
+        NEWS_META.write_text(json.dumps(cache, indent=2))
+    return meta
 
 
 def load_pricing() -> list[dict]:
@@ -191,7 +257,15 @@ def main() -> None:
         "appSummary": (ROOT / "data" / "app_summary.md").read_text(),
         "gapMatrix": gap,
         "painPoints": pains,
-        "trends": [{"description": t["description"], "citation": norm_citation(t["citation"])} for t in market["trends"]],
+        "trends": [
+            {
+                "id": f"trend-{i}",
+                "description": t["description"],
+                "citation": norm_citation(t["citation"]),
+                **{k: v for k, v in fetch_news_meta(t["citation"]["ref"]).items()},
+            }
+            for i, t in enumerate(market["trends"])
+        ],
         "reviewSnippets": norm_citations(market["review_snippets"]),
         "messaging": messaging,
         "pricing": pricing,

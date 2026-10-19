@@ -45,7 +45,14 @@ export type PainPoint = {
   citation: Citation;
 };
 
-export type Trend = { description: string; citation: Citation };
+export type Trend = {
+  id: string;
+  description: string;
+  citation: Citation;
+  /** article headline (og:title) and a locally saved preview image, when the site allows it */
+  title: string | null;
+  image: string | null;
+};
 
 export type Messaging = {
   id: string;
