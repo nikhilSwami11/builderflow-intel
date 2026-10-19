@@ -9,7 +9,7 @@ export type ThemeGroup = {
   theme: string;
   label: string;
   color: string;
-  points: { id: string; description: string; companies: string[]; citation: Citation; idea: { id: string; title: string } | null }[];
+  points: { id: string; description: string; companies: string[]; citation: Citation; idea: { id: string; title: string } | null; question: string | null }[];
 };
 
 /** Donut of complaint themes. Picking a slice (or its legend row) lists that theme's points. */
@@ -85,7 +85,7 @@ export function PainExplorer({ groups }: { groups: ThemeGroup[] }) {
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-text-2">
                 <span>{p.companies.length ? p.companies.join(", ") : "Industry-wide"}</span>
                 <Cites citations={[p.citation]} />
-                {p.idea && <IdeaTag href={`/advisor/${p.idea.id}`} title={p.idea.title} />}
+                {p.idea && <IdeaTag href={`/advisor/${p.idea.id}`} title={p.idea.title} question={p.question ?? undefined} />}
               </div>
             </li>
           ))}

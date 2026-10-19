@@ -4,7 +4,7 @@ import { PageTitle } from "@/components/page-title";
 import { PainExplorer, type ThemeGroup } from "@/components/pain-explorer";
 import { Section } from "@/components/section";
 import { bundle, THEME_LABEL } from "@/lib/data";
-import { ideaForPain, ideaForTrend } from "@/lib/ideas";
+import { ideaForPain, ideaForTrend, newsQuestion, painQuestion } from "@/lib/ideas";
 import type { PainPoint, Trend } from "@/lib/types";
 
 const COLORS = ["#0a0a0a", "#1a56c4", "#1b7a45", "#a65b00", "#b4234f", "#6b34c9", "#0e7c7b", "#b84a1c", "#8a6d00", "#7a7a7a", "#c4c4c4"];
@@ -39,7 +39,7 @@ function NewsCard({ t }: { t: Trend }) {
         {hasTitle && <p className="mt-2 line-clamp-3 text-[13px] leading-snug text-text-2">{t.description}</p>}
         {idea && (
           <div className="relative z-10 mt-auto pt-3">
-            <IdeaTag href={`/advisor/${idea.id}`} title={idea.title} />
+            <IdeaTag href={`/advisor/${idea.id}`} title={idea.title} question={newsQuestion(headline, t.description, h, idea)} />
           </div>
         )}
       </div>
@@ -60,7 +60,10 @@ export default function PainPoints() {
       theme,
       label: THEME_LABEL[theme as keyof typeof THEME_LABEL],
       color: COLORS[i % COLORS.length],
-      points: points.map((p) => ({ id: p.id, description: p.description, companies: p.companies, citation: p.citation, idea: ideaForPain(p) })),
+      points: points.map((p) => {
+        const idea = ideaForPain(p);
+        return { id: p.id, description: p.description, companies: p.companies, citation: p.citation, idea, question: idea ? painQuestion(p, idea) : null };
+      }),
     }));
 
   // Two trends can come from one article; show each article once.

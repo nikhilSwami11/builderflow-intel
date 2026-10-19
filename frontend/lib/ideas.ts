@@ -28,3 +28,13 @@ export function ideaForTrend(t: Trend): IdeaRef | null {
   const best = [...bundle.recommendations].sort((a, b) => overlap(t.description, b) - overlap(t.description, a))[0];
   return best && overlap(t.description, best) >= 4 ? ref(best) : null;
 }
+
+/** The question the Discuss button sends to the chat: the item itself, then its idea. */
+export function painQuestion(p: PainPoint, idea: IdeaRef): string {
+  const who = p.companies.length ? ` (${p.companies.join(", ")})` : "";
+  return `Contractors report${who}: "${p.description}" Our idea: "${idea.title}". What should Builderflow do about this, and why?`;
+}
+
+export function newsQuestion(headline: string, description: string, host: string, idea: IdeaRef): string {
+  return `Market news from ${host}: "${headline}". ${description} Our idea: "${idea.title}". How should Builderflow respond to this trend, and why?`;
+}
