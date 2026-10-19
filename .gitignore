@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+data/cache/
+data/chroma/
+data/builderflow_screens/
+data/builderflow_guide.docx
+data/builderflow_guide.md
