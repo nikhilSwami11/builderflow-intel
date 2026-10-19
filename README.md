@@ -162,7 +162,7 @@ source .venv/bin/activate
 python -m intel.graph
 ```
 ```
-gap_matrix=16 pricing_comparison=3 top_pain_points=8 messaging_inconsistencies=4 growth_recommendations=20
+gap_matrix=17 pricing_comparison=3 top_pain_points=8 messaging_inconsistencies=5 growth_recommendations=22
 ```
 *(Row counts can shift slightly between regenerations -- gap-matrix synthesis and pain-point
 selection involve LLM judgment calls, e.g. how finely to split two similar features into one
@@ -183,11 +183,14 @@ questions of the LLM until you actually type one.
   ~1500-token `app_summary.md` that grounds every downstream node.
 - **Competitors**: CompanyCam, JobNimbus, Buildertrend — homepage, pricing, features,
   changelog, each cached by URL (feeds the gap matrix / growth advisor / chat).
-- **Pricing tab specifically** uses hand-verified pricing for Builderflow, JobNimbus,
-  CompanyCam, Roofr and JobTread (`data/manual/competitor_pricing.yaml`, sourced from
-  `data/competition.txt` + Builderflow's own pricing page) instead of LLM-extracted dollar
-  figures — exact prices need to be exact, not inferred from a scrape. AI still covers
-  features, positioning, and messaging-inconsistency analysis.
+- **Pricing is hand-verified end to end, not LLM-extracted** — `data/manual/competitor_pricing.yaml`
+  (sourced from `data/competition.txt` + Builderflow's own pricing page) covers Builderflow,
+  CompanyCam, JobNimbus, Buildertrend, Roofr and JobTread. The Pricing tab renders it directly;
+  `analyze.py`'s `pricing_comparison` (which growth_advisor and chat cite) is now built the
+  same way in Python, not an LLM call — exact prices need to be exact, not inferred from a
+  scrape. The gap matrix also gets one deterministically-injected row for the flat-vs-per-seat
+  pricing-model split (Buildertrend's differentiator), for the same reason. AI still covers
+  feature parity, positioning, and messaging-inconsistency analysis.
 - **Market**: 6 industry trends, 16 themed contractor pain points, 10 review snippets, all
   via live Tavily search, cached by query.
 - **Analysis**: ~16 gap-matrix rows, 3 pricing comparisons, 8 selected top pain points, ~4

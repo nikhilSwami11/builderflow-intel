@@ -18,9 +18,9 @@ GROWTH_PATH = Path("data/cache/growth_advice.json")
 MARKET_PATH = Path("data/cache/market_insights.json")
 APP_SUMMARY_PATH = Path("data/app_summary.md")
 MANUAL_PRICING_PATH = Path("data/manual/competitor_pricing.yaml")
-# Builderflow first (house brand, shown as the reference column), then everyone else in the
-# order they were researched.
-PRICING_ORDER = ["builderflow", "jobnimbus", "companycam", "roofr", "jobtread"]
+# Builderflow first (house brand, shown as the reference column), then the 3 competitors the
+# rest of the pipeline analyzes (CLAUDE.md's default scope), then the 2 extras.
+PRICING_ORDER = ["builderflow", "companycam", "jobnimbus", "buildertrend", "roofr", "jobtread"]
 
 TIER_ORDER = ["table_stakes", "differentiator", "emerging"]
 TIER_LABEL = {

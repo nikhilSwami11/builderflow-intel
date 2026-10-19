@@ -21,6 +21,23 @@ builderflow:
   notes: "No dollar pricing published anywhere on the site -- tiers are differentiated by user limit and feature set, not list price."
   citation: {source: website, ref: "https://builderflow.app/pricing/"}
 
+buildertrend:
+  name: Buildertrend
+  flat_unlimited_pricing: true
+  plans:
+    - label: Essential
+      price: "Est. $399-$499/mo"
+      users: "Unlimited"
+    - label: Advanced
+      price: "Est. $699-$799/mo"
+      users: "Unlimited"
+    - label: Complete
+      price: "Est. $999-$1,100+/mo"
+      users: "Unlimited"
+  notes: "Flat per-tier pricing -- every internal worker, field laborer, subcontractor, vendor and client gets full access at no extra seat cost. Total cost of ownership runs higher than the base quote: typically a 1-year minimum contract (no free trial), a mandatory $100-$300/mo support/training package depending on revenue, and online card payments cost 2.99% + $0.30 + a $1.49 platform fee per transaction."
+  best_feature: "Pricing scales with feature tier, not headcount -- unlike per-user tools (JobNimbus, JobTread), adding staff, subs, vendors or clients never changes the bill."
+  citation: {source: manual, ref: "data/competition.txt"}
+
 jobnimbus:
   name: JobNimbus
   plans:

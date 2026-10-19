@@ -109,10 +109,10 @@ class GapMatrixResult(BaseModel):
     entries: list[GapMatrixEntry] = Field(default_factory=list)
 
 
-class PricingMessagingResult(BaseModel):
-    """Call-shaped wrapper for the pricing-comparison + messaging-inconsistency call."""
+class MessagingResult(BaseModel):
+    """Call-shaped wrapper for the messaging-inconsistency call. Pricing comparison isn't an
+    LLM call at all anymore -- see analyze.py -- so this only wraps messaging_inconsistencies."""
 
-    pricing_comparison: list[PricingComparisonEntry] = Field(default_factory=list)
     messaging_inconsistencies: list[MessagingInconsistency] = Field(default_factory=list)
 
 
