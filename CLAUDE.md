@@ -42,7 +42,10 @@ The README must open with this reasoning.
   It's a straight sequence with no branching/fan-out, and intel/cache.py already makes
   re-runs free; a graph framework would add indirection without adding capability. Dropped
   langgraph from requirements.txt accordingly.
-- Streamlit UI (custom theme in .streamlit/config.toml)
+- Streamlit UI (custom theme in .streamlit/config.toml) -- being replaced by frontend/ (Next.js 16 +
+  Tailwind 4, hand-built components, design direction from impeccable: "Blueprint set").
+  Read-only over data/cache via `python scripts/export_frontend.py` -> frontend/data/bundle.json.
+  Chat will call a thin FastAPI shim over intel/rag.py answer(). intel/ stays untouched.
 - Chroma for vectors (RAG over everything the pipeline produces, phase 7)
 - Playwright for JS-rendered pages, Tavily for search (cached queries + live chat fallback)
 - OpenAI API: mini vision model for screenshots, mini model for collect/extract/market/
@@ -133,7 +136,8 @@ Chat = RAG over everything with citations and live search fallback.
 - Setup: `python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && playwright install chromium`
 - Ingest Builderflow: `python -m intel.ingest`
 - Run pipeline: `python -m intel.graph`
-- UI: `streamlit run app.py`
+- UI (old): `streamlit run app.py`
+- UI (new): `python scripts/export_frontend.py && cd frontend && npm install && npm run dev`
 
 ## Build phases (update the checkboxes as you go)
 - [x] 1. Scaffold, requirements, cache, schemas

@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* Blueprint set: ink sidebar, cool paper ground, drawing-blue rules, redline for gaps. */
+:root {
+  --ink: #0e2a47;
+  --ink-2: #16365a;
+  --ink-text: #c6d6ea;
+  --paper: #f5f8fc;
+  --sheet: #ffffff;
+  --text: #0e2238;
+  --text-2: #4a5f78;
+  --rule: #c9d7e8;
+  --rule-strong: #8fa8c6;
+  --blue: #1d5fb8;
+  --blue-wash: #e4eefb;
+  --red: #c8372d;
+  --red-wash: #fbe9e7;
+  --amber: #9a6a00;
+  --amber-wash: #fcf0d2;
+  --green: #1f7a4d;
+  --green-wash: #def2e7;
+  --stone: #5d6b7c;
+  --stone-wash: #e8edf3;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-text: var(--ink-text);
+  --color-paper: var(--paper);
+  --color-sheet: var(--sheet);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-blue: var(--blue);
+  --color-blue-wash: var(--blue-wash);
+  --color-red: var(--red);
+  --color-red-wash: var(--red-wash);
+  --color-amber: var(--amber);
+  --color-amber-wash: var(--amber-wash);
+  --color-green: var(--green);
+  --color-green-wash: var(--green-wash);
+  --color-stone: var(--stone);
+  --color-stone-wash: var(--stone-wash);
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  background: var(--paper);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  background: var(--paper);
+  color: var(--text);
+}
+
+/* Browser surfaces themed from the palette */
+::selection {
+  background: var(--blue);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+* {
+  scrollbar-color: var(--rule-strong) transparent;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
