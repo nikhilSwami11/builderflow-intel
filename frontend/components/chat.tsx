@@ -1,15 +1,12 @@
 "use client";
 
-import { ArrowUp, Globe } from "lucide-react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { ArrowUp } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Cites } from "@/components/cite";
-import type { Citation } from "@/lib/types";
-
-type Turn =
-  | { role: "user"; text: string }
-  | { role: "assistant"; text: string; citations: Citation[]; usedLiveSearch: boolean }
-  | { role: "error"; text: string };
+import type { ChatMessage } from "@/lib/chat-types";
 
 const STARTERS = [
   "What should Builderflow fix first in Work Orders?",
@@ -18,7 +15,10 @@ const STARTERS = [
   "Where do our website, portal and guide disagree?",
 ];
 
-/** Minimal rendering for the model's prose: paragraphs, "- " / "1)" lists, **bold**. */
+/** Minimal rendering for the model's prose: paragraphs, "- " / "1." lists (also when a list
+ *  follows a lead-in line in the same block) and **bold**. */
+const LIST_ITEM = /^\s*(?:[-•*]|\d+[.)])\s+/;
+
 function Prose({ text }: { text: string }) {
   const bold = (line: string) =>
     line.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
@@ -30,78 +30,84 @@ function Prose({ text }: { text: string }) {
         part
       ),
     );
-  return (
-    <div className="space-y-2.5">
-      {text.split(/\n{2,}/).map((block, i) => {
-        const lines = block.split("\n").filter(Boolean);
-        const isList = lines.length > 1 && lines.every((l) => /^(\s*[-•*]\s+|\s*\d+[.)]\s+)/.test(l));
-        return isList ? (
-          <ul key={i} className="list-disc space-y-1 pl-5">
-            {lines.map((l, j) => (
-              <li key={j}>{bold(l.replace(/^(\s*[-•*]\s+|\s*\d+[.)]\s+)/, ""))}</li>
-            ))}
-          </ul>
-        ) : (
-          <p key={i}>{bold(lines.join(" "))}</p>
-        );
-      })}
-    </div>
-  );
-}
 
-export function Chat() {
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const scroller = useRef<HTMLDivElement>(null);
-  const seeded = useRef(false);
-  const seedQuestion = useSearchParams().get("q");
-
-  useEffect(() => {
-    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
-  }, [turns, busy]);
-
-  // A "Discuss" link from the Gap Matrix or Overview arrives as /chat?q=...: ask it once.
-  useEffect(() => {
-    if (seedQuestion && !seeded.current) {
-      seeded.current = true;
-      void send(seedQuestion);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seedQuestion]);
-
-  async function send(question: string) {
-    const q = question.trim();
-    if (!q || busy) return;
-    setInput("");
-    setBusy(true);
-    setTurns((t) => [...t, { role: "user", text: q }]);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question: q }),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      const data = await res.json();
-      setTurns((t) => [...t, { role: "assistant", text: data.answer, citations: data.citations, usedLiveSearch: data.usedLiveSearch }]);
-    } catch {
-      setTurns((t) => [
-        ...t,
-        { role: "error", text: "Couldn't reach the chat service. Start it from the repo root with: uvicorn scripts.chat_api:app --port 8000" },
-      ]);
-    } finally {
-      setBusy(false);
+  // Blank lines separate paragraphs. Inside one, consecutive list lines group into one list and
+  // consecutive plain lines into one paragraph.
+  const blocks: { list: boolean; lines: string[] }[] = [];
+  for (const para of text.split(/\n{2,}/)) {
+    let prev: { list: boolean; lines: string[] } | null = null;
+    for (const line of para.split("\n").filter((l) => l.trim())) {
+      const list = LIST_ITEM.test(line);
+      if (prev && prev.list === list) prev.lines.push(line);
+      else blocks.push((prev = { list, lines: [line] }));
     }
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col border border-rule bg-sheet">
+    <div className="space-y-2.5">
+      {blocks.map((b, i) =>
+        b.list ? (
+          <ul key={i} className="list-disc space-y-1 pl-5">
+            {b.lines.map((l, j) => (
+              <li key={j}>{bold(l.replace(LIST_ITEM, ""))}</li>
+            ))}
+          </ul>
+        ) : (
+          <p key={i}>{bold(b.lines.join(" "))}</p>
+        ),
+      )}
+    </div>
+  );
+}
+
+// The model cites items by id ([G3], [P2][R5]). The ids are internal: hide them (and any
+// half-streamed one at the end) and show the resolved sources under the answer instead.
+const ID_GROUP = /\s*\[[A-Z]{1,2}\d+(?:\s*,\s*[A-Z]{1,2}\d+)*\]/g;
+const PARTIAL_ID = /\s*\[[A-Z]{0,2}\d*(?:\s*,\s*[A-Z]{0,2}\d*)*$/;
+const clean = (t: string) => t.replace(ID_GROUP, "").replace(PARTIAL_ID, "");
+
+const textOf = (m: ChatMessage) => m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+const sourcesOf = (m: ChatMessage) => m.parts.flatMap((p) => (p.type === "data-sources" ? p.data.citations : []));
+
+export function Chat() {
+  const { messages, sendMessage, status, error } = useChat<ChatMessage>({
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+  });
+  const [input, setInput] = useState("");
+  const scroller = useRef<HTMLDivElement>(null);
+  const seeded = useRef(false);
+  const seedQuestion = useSearchParams().get("q");
+  const busy = status === "submitted" || status === "streaming";
+
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
+  }, [messages, status]);
+
+  function send(question: string) {
+    const q = question.trim();
+    if (!q || busy) return;
+    setInput("");
+    void sendMessage({ text: q });
+  }
+
+  // A "Discuss" link arrives as /chat?q=...: ask it once.
+  useEffect(() => {
+    if (seedQuestion && !seeded.current) {
+      seeded.current = true;
+      void sendMessage({ text: seedQuestion });
+    }
+  }, [seedQuestion, sendMessage]);
+
+  const last = messages[messages.length - 1];
+  const waitingForFirstWord = status === "submitted" || (status === "streaming" && last?.role === "assistant" && !textOf(last));
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-rule bg-sheet">
       <div ref={scroller} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
-        {turns.length === 0 && (
+        {messages.length === 0 && (
           <div className="mx-auto max-w-2xl pt-6">
             <p className="text-[15px] font-medium">Ask a growth question.</p>
-            <p className="mt-1 text-[13px] text-text-2">Answers come from the guide, website, screenshots, market research and the analysis on the other sheets, and cite their sources.</p>
+            <p className="mt-1 text-[13px] text-text-2">Answers come from the analysis on the other pages and cite their sources.</p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {STARTERS.map((s) => (
                 <button
@@ -116,35 +122,29 @@ export function Chat() {
           </div>
         )}
 
-        {turns.map((t, i) =>
-          t.role === "user" ? (
-            <div key={i} className="flex justify-end">
-              <p className="max-w-[80%] rounded-lg bg-ink px-3.5 py-2 text-[14px] text-white">{t.text}</p>
+        {messages.map((m) =>
+          m.role === "user" ? (
+            <div key={m.id} className="flex justify-end">
+              <p className="max-w-[80%] rounded-lg bg-ink px-3.5 py-2 text-[14px] text-white">{textOf(m)}</p>
             </div>
-          ) : t.role === "error" ? (
-            <p key={i} className="max-w-[80ch] rounded-md border border-red/30 bg-red-wash px-3.5 py-2.5 text-[13px] text-red">
-              {t.text}
-            </p>
-          ) : (
-            <div key={i} className="max-w-[78ch] text-[14px] leading-relaxed">
-              <Prose text={t.text} />
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-text-2">
-                {t.citations.length > 0 && (
-                  <span className="flex items-center gap-2">
-                    Sources <Cites citations={t.citations} />
-                  </span>
-                )}
-                {t.usedLiveSearch && (
-                  <span className="flex items-center gap-1">
-                    <Globe size={13} aria-hidden /> Included a live web search
-                  </span>
-                )}
-              </div>
+          ) : textOf(m) ? (
+            <div key={m.id} className="max-w-[78ch] text-[14px] leading-relaxed">
+              <Prose text={clean(textOf(m))} />
+              {sourcesOf(m).length > 0 && (
+                <div className="mt-3">
+                  <Cites citations={sourcesOf(m)} />
+                </div>
+              )}
             </div>
-          ),
+          ) : null,
         )}
 
-        {busy && <p className="text-[13px] text-text-2">Retrieving sources and drafting an answer…</p>}
+        {waitingForFirstWord && <p className="text-[13px] text-text-2">Thinking…</p>}
+        {status === "error" && (
+          <p className="max-w-[80ch] rounded-md border border-red/30 bg-red-wash px-3.5 py-2.5 text-[13px] text-red">
+            Something went wrong getting an answer{error?.message ? `: ${error.message.slice(0, 160)}` : ""}. Check that OPENAI_API_KEY or AI_GATEWAY_API_KEY is set in frontend/.env.local, then try again.
+          </p>
+        )}
       </div>
 
       <form
@@ -152,7 +152,7 @@ export function Chat() {
           e.preventDefault();
           send(input);
         }}
-        className="flex items-end gap-2 border-t border-rule-strong bg-paper p-3"
+        className="flex items-end gap-2 border-t border-rule bg-paper p-3"
       >
         <label htmlFor="chat-input" className="sr-only">
           Ask a growth question

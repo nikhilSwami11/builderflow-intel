@@ -178,17 +178,20 @@ built once (`python -m intel.rag`, 417 chunks, also idempotent/cached) but asks 
 questions of the LLM until you actually type one.
 
 **Web frontend** (Next.js; replaces the Streamlit app for presenting). Reads the same cached
-output through one exported JSON, so it makes no LLM calls except chat:
+output through one exported JSON. Chat streams from a Next.js route (Vercel AI SDK), which
+sends the whole analysis (~8k tokens) plus the app summary to the model on every question --
+no vector search -- and answers with citation ids that become source chips.
 ```bash
 python scripts/export_frontend.py            # cache -> frontend/data/bundle.json (+ cited screenshots)
-cd frontend && npm install && npm run dev    # http://localhost:3000
-# chat only, in a second terminal at the repo root:
-uvicorn scripts.chat_api:app --port 8000
+cd frontend && npm install
+echo "OPENAI_API_KEY=..." > .env.local       # or AI_GATEWAY_API_KEY=... to route through Vercel's AI Gateway
+npm run dev                                   # http://localhost:3000
 ```
-Six sheets: Overview, Gap Matrix, Pricing, Pain Points & Market, Growth Advisor (each
-recommendation opens a detail page with its linked evidence) and Chat. `bundle.json` and the
-copied screenshots are gitignored (derived from cache / possibly private), so re-run the export
-after cloning or after the pipeline output changes.
+Six pages: Overview, Gap Matrix, Pricing, Pain Points & Market, Growth Advisor (each idea has
+a detail page with its linked evidence) and Chat. `bundle.json` and the copied screenshots are
+gitignored (derived from cache / possibly private), so re-run the export after cloning or after
+the pipeline output changes. The Python chat (`scripts/chat_api.py`, `intel/rag.py`) still works
+but the frontend no longer uses it; it also had live web search, which the new chat does not.
 
 ## What's in the data
 
