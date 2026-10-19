@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Cites } from "@/components/cite";
@@ -29,7 +30,16 @@ export function generateStaticParams() {
   return bundle.recommendations.map((r) => ({ id: r.id }));
 }
 
-export default async function Recommendation({ params }: { params: Promise<{ id: string }> }) {
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
+  // Reading `params` has to sit inside a Suspense boundary (Next 16 instant navigation).
+  return (
+    <Suspense fallback={<div className="mx-auto h-64 max-w-4xl animate-pulse rounded-xl border border-rule bg-sheet" />}>
+      <Recommendation params={params} />
+    </Suspense>
+  );
+}
+
+async function Recommendation({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const rec = bundle.recommendations.find((r) => r.id === id);
   if (!rec) notFound();
