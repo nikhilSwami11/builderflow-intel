@@ -177,6 +177,19 @@ Opens all 6 tabs against the cached pipeline output. The Chat tab needs the Chro
 built once (`python -m intel.rag`, 417 chunks, also idempotent/cached) but asks no new
 questions of the LLM until you actually type one.
 
+**Web frontend** (Next.js; replaces the Streamlit app for presenting). Reads the same cached
+output through one exported JSON, so it makes no LLM calls except chat:
+```bash
+python scripts/export_frontend.py            # cache -> frontend/data/bundle.json (+ cited screenshots)
+cd frontend && npm install && npm run dev    # http://localhost:3000
+# chat only, in a second terminal at the repo root:
+uvicorn scripts.chat_api:app --port 8000
+```
+Six sheets: Overview, Gap Matrix, Pricing, Pain Points & Market, Growth Advisor (each
+recommendation opens a detail page with its linked evidence) and Chat. `bundle.json` and the
+copied screenshots are gitignored (derived from cache / possibly private), so re-run the export
+after cloning or after the pipeline output changes.
+
 ## What's in the data
 
 - **Builderflow**: 265 guide sections, 10 website pages, 98 screenshots across 46 flows → one

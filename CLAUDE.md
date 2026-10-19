@@ -148,4 +148,5 @@ Chat = RAG over everything with citations and live search fallback.
 - [x] 6. Streamlit UI tabs
 - [x] 7. Chat with RAG and citations
 - [x] 8. README with architecture diagram, offline demo run on cached data
+- [x] Frontend rebuild: Next.js app in frontend/ (export script, 6 sheets, evidence detail view, chat via scripts/chat_api.py)
 - [ ] Extras: flow map, more competitors, chat screenshot fallback
