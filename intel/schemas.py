@@ -108,6 +108,19 @@ class GrowthAdvice(BaseModel):
 
 # ---- screenshots (vision pass) ----
 
+class ScreenVisionOutput(BaseModel):
+    """What the LLM fills in from pixels alone; image_path/flow/module/step are added after."""
+
+    screen: str
+    purpose: str
+    navigation: str | None = None
+    components: list[str] = Field(default_factory=list)
+    actions: list[str] = Field(default_factory=list)
+    data_fields: list[str] = Field(default_factory=list)
+    status: Literal["observed", "inferred", "unverified"]
+    ux_notes: str | None = None
+
+
 class ScreenAnalysis(BaseModel):
     image_path: str
     flow: str  # folder name

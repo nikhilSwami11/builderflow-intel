@@ -55,7 +55,6 @@ intel/
   schemas.py                Pydantic models
   cache.py                  disk cache keyed by hash
   rag.py                    Chroma ingest + retrieval
-scripts/dedupe.py           perceptual-hash dedupe for screenshots
 data/
   builderflow_guide.docx    user guide (PRIMARY source), converted to builderflow_guide.md
   builderflow_site/         public website text (homepage.md already there)
@@ -80,7 +79,7 @@ Website
   Don't pick one.
 
 Screenshots
-- Dedupe first across all subfolders (phash threshold 5, move dupes to _duplicates/).
+- No dedupe step. Nikhil captured and sorted these manually; all 98 are kept as-is.
 - Walk subfolders recursively. Each of the ~45 folders is a feature or flow: folder name =
   `flow` metadata. Map each flow to a parent `module` with one cached LLM call over the folder
   list plus guide headings. Numeric filename prefixes (01_, 02_) = `step` metadata.
@@ -128,14 +127,13 @@ Chat = RAG over everything with citations and live search fallback.
 
 ## Commands
 - Setup: `python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && playwright install chromium`
-- Dedupe: `python scripts/dedupe.py`
 - Ingest Builderflow: `python -m intel.ingest`
 - Run pipeline: `python -m intel.graph`
 - UI: `streamlit run app.py`
 
 ## Build phases (update the checkboxes as you go)
 - [ ] 1. Scaffold, requirements, cache, schemas
-- [ ] 2. Builderflow ingestion: guide conversion, website text, dedupe, vision pass, app_summary
+- [ ] 2. Builderflow ingestion: guide conversion, website text, vision pass, app_summary
 - [ ] 3. collect + extract: one competitor end to end, then the other two, plus Builderflow site pages
 - [ ] 4. market node (trends, pain points, reviews)
 - [ ] 5. analyze + growth_advisor
