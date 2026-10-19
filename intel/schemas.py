@@ -46,8 +46,24 @@ class CompetitorProfile(BaseModel):
 
 # ---- market ----
 
+PainPointTheme = Literal[
+    "pricing_transparency",
+    "support",
+    "mobile_reliability",
+    "data_integrity",  # data loss, merge bugs, export problems
+    "onboarding",  # setup, training, learning curve
+    "integrations",
+    "automation_rigidity",
+    "feature_depth",  # missing/shallow features (estimating, reporting, profit tracking, etc.)
+    "tool_fragmentation",  # need multiple stitched-together tools
+    "adoption",  # low adoption / unclear ROI
+    "other",
+]
+
+
 class PainPoint(BaseModel):
     description: str
+    theme: PainPointTheme
     affected_companies: list[str] = Field(default_factory=list)
     citation: Citation
 
@@ -67,7 +83,8 @@ class MarketInsights(BaseModel):
 
 class GapMatrixEntry(BaseModel):
     feature: str
-    builderflow_has: bool | Literal["unverified"]
+    tier: Literal["table_stakes", "differentiator", "emerging"]
+    builderflow_has: Literal["yes", "no", "partial", "unverified"]
     competitors_with_it: list[str] = Field(default_factory=list)
     citations: list[Citation] = Field(default_factory=list)
 
@@ -84,6 +101,19 @@ class MessagingInconsistency(BaseModel):
     portal_says: str | None = None
     guide_says: str | None = None
     citations: list[Citation] = Field(default_factory=list)
+
+
+class GapMatrixResult(BaseModel):
+    """Call-shaped wrapper for the dedicated gap-matrix extraction call."""
+
+    entries: list[GapMatrixEntry] = Field(default_factory=list)
+
+
+class PricingMessagingResult(BaseModel):
+    """Call-shaped wrapper for the pricing-comparison + messaging-inconsistency call."""
+
+    pricing_comparison: list[PricingComparisonEntry] = Field(default_factory=list)
+    messaging_inconsistencies: list[MessagingInconsistency] = Field(default_factory=list)
 
 
 class AnalysisResult(BaseModel):
@@ -104,6 +134,21 @@ class GrowthRecommendation(BaseModel):
 
 class GrowthAdvice(BaseModel):
     recommendations: list[GrowthRecommendation] = Field(default_factory=list)
+
+
+class GrowthRecommendationDraft(BaseModel):
+    """Call-shaped draft: cites by short id into a pre-built index instead of retyping a
+    Citation's exact ref (e.g. an image path) -- models reliably point to an id, not retype
+    a long/unusual string verbatim."""
+
+    title: str
+    detail: str
+    category: Literal["build", "double_down", "positioning", "pricing", "quick_win"]
+    citation_ids: list[str] = Field(default_factory=list)
+
+
+class GrowthAdviceDraft(BaseModel):
+    recommendations: list[GrowthRecommendationDraft] = Field(default_factory=list)
 
 
 # ---- screenshots (vision pass) ----

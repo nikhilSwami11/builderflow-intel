@@ -1,4 +1,273 @@
-"""Analyze node: feature gap matrix, pricing comparison, top pain points, messaging inconsistencies.
+"""Analyze node: feature gap matrix, pricing comparison, top pain points, messaging
+inconsistencies.
 
-Stub for phase 1. Implemented in phase 5. Uses mini model.
+Two cached mini-model calls, grounded in app_summary + screen digest + the 3 competitor
+profiles + Builderflow's own pricing page + market_insights (not raw scraping alone --
+feature lists from marketing pages are weak signal on their own):
+
+1. Gap matrix -- synthesizes one canonical feature list across competitors (dedupes
+   synonyms), tiers each row (table_stakes / differentiator / emerging, the last one tied to
+   market trends, not invented), and marks Builderflow's status as yes/no/partial/unverified
+   grounded only in app_summary + screen digest.
+2. Pricing comparison + messaging inconsistencies -- grounded in pricing pages on both sides
+   and the provenance/mismatch note already surfaced in app_summary.md.
+
+Top pain points is NOT a third LLM call -- market.py already extracted and themed them with
+citations, so this step is a plain Python select/group (named-competitor complaints first,
+capped per theme) to avoid re-deriving what's already structured.
 """
+import hashlib
+import json
+import re
+from collections import Counter
+from pathlib import Path
+
+import yaml
+
+from intel.cache import cached
+from intel.config import MINI_MODEL, client
+from intel.nodes.collect import collect_competitor
+from intel.nodes.extract import extract_competitor
+from intel.nodes.market import run as run_market
+from intel.schemas import AnalysisResult, GapMatrixResult, PainPoint, PricingMessagingResult
+
+APP_SUMMARY_PATH = Path("data/app_summary.md")
+BUILDERFLOW_PRICING_PATH = Path("data/builderflow_site/pricing.md")
+BUILDERFLOW_HOMEPAGE_PATH = Path("data/builderflow_site/homepage.md")
+SCREEN_ANALYSES_PATH = Path("data/cache/screen_analyses.json")
+OUT_PATH = Path("data/cache/analysis_result.json")
+
+
+def _screen_digest_with_paths() -> str:
+    """Like summary._screen_digest but keeps image_path so the gap-matrix call can cite a
+    real file instead of inventing a descriptive label."""
+    analyses = json.loads(SCREEN_ANALYSES_PATH.read_text())
+    seen = set()
+    lines = []
+    for a in analyses:
+        key = (a["module"], a["purpose"])
+        if key in seen:
+            continue
+        seen.add(key)
+        lines.append(f"- [{a['module']}] {a['screen']}: {a['purpose']} (path: {a['image_path']})")
+    return "\n".join(lines)
+
+TOP_PAIN_POINTS_CAP = 8
+MAX_PER_THEME = 3
+
+
+def _competitor_profiles() -> dict:
+    competitors = yaml.safe_load(open("data/competitors.yaml"))
+    profiles = {}
+    for c in competitors:
+        pages = collect_competitor(c["name"], c["homepage"])
+        profiles[c["name"]] = extract_competitor(c["name"], pages)
+    return profiles
+
+
+def _format_profiles(profiles: dict) -> str:
+    chunks = []
+    for name, profile in profiles.items():
+        chunks.append(f"-- {name} --\nFeatures: {', '.join(profile.features)}")
+    return "\n\n".join(chunks)
+
+
+GAP_MATRIX_PROMPT = """You are building a feature gap matrix for Builderflow, a smaller
+lead-management/CRM tool for remodelers and contractors, against three competitors
+(CompanyCam, JobNimbus, Buildertrend).
+
+A raw list of "do they have feature X" is weak on its own -- marketing pages overstate
+parity. So for every row, also classify how much it actually matters:
+- "table_stakes": most/all competitors have it -- Builderflow not having it is a real risk,
+  not an opportunity.
+- "differentiator": only some competitors have it -- a real edge either way.
+- "emerging": shows up in the market trends below but few/no competitors have it yet --
+  a frontier opportunity. Only use this tier if the market trends actually support it, don't
+  invent emerging features.
+
+Synthesize ONE canonical feature list across all three competitors' raw feature lists below
+-- merge obvious synonyms (e.g. "Mobile App" / "Technician Mobile App" / "Field app" are the
+same row). Weight the list toward CRM / lead-management / scheduling / estimating
+capabilities, not only inspection/photo-documentation features.
+
+For builderflow_has, use ONLY the Builderflow app_summary and screen digest below -- "yes" if
+clearly present, "partial" if present but pilot/limited/rolling-out per the summary, "no" if
+clearly absent, "unverified" if the screens suggest it but the guide/website don't confirm
+(or vice versa). Never guess.
+
+citations: for each row, cite the competitor source (use their website homepage as ref if no
+more specific URL is available) and, for Builderflow's status, cite a builderflow_site/*.md
+file, or -- when the evidence is a screenshot -- copy the exact "(path: ...)" value from the
+screen digest below verbatim as ref (source="screenshot"). Never paraphrase or invent a ref.
+
+=== COMPETITOR FEATURES ===
+{competitor_features}
+
+=== MARKET TRENDS (for "emerging" tier only) ===
+{trends}
+
+=== BUILDERFLOW APP SUMMARY ===
+{app_summary}
+
+=== BUILDERFLOW SCREEN DIGEST (module: screen - purpose) ===
+{screen_digest}
+"""
+
+
+_PATH_WRAPPER = re.compile(r"^\(path:\s*(.+)\)$")
+
+
+def _clean_screenshot_ref(ref: str) -> str:
+    """The model sometimes copies the whole '(path: ...)' wrapper instead of just the path."""
+    m = _PATH_WRAPPER.match(ref.strip())
+    return m.group(1) if m else ref
+
+
+def _recompute_tier(count: int, total: int) -> str:
+    """Tier is a counting rule, not a judgment call -- compute it deterministically instead
+    of trusting the model's per-row tier label, which drifts inconsistent across a long list."""
+    if count == 0:
+        return "emerging"  # only legitimate when trend-grounded, per the prompt
+    if count == 1:
+        return "differentiator"
+    return "table_stakes"  # majority or all competitors have it
+
+
+def build_gap_matrix(profiles: dict, trends: list, app_summary: str, screen_digest: str) -> GapMatrixResult:
+    prompt = GAP_MATRIX_PROMPT.format(
+        competitor_features=_format_profiles(profiles),
+        trends="\n".join(f"- {t.description} ({t.citation.ref})" for t in trends),
+        app_summary=app_summary,
+        screen_digest=screen_digest,
+    )
+    key = hashlib.sha256(prompt.encode()).hexdigest()
+
+    def _call():
+        resp = client().responses.parse(
+            model=MINI_MODEL,
+            input=[{"role": "user", "content": prompt}],
+            text_format=GapMatrixResult,
+        )
+        return resp.output_parsed.model_dump()
+
+    result = GapMatrixResult(**cached("analyze_gap_matrix", key, _call))
+    total = len(profiles)
+    for entry in result.entries:
+        entry.tier = _recompute_tier(len(entry.competitors_with_it), total)
+        for c in entry.citations:
+            if c.source == "screenshot":
+                c.ref = _clean_screenshot_ref(c.ref)
+    return result
+
+
+PRICING_MESSAGING_PROMPT = """You are comparing Builderflow's pricing and public messaging
+against three competitors (CompanyCam, JobNimbus, Buildertrend), for Builderflow, a smaller
+lead-management/CRM tool for remodelers and contractors.
+
+pricing_comparison: one entry per competitor. In the summary, explicitly position Builderflow
+relative to them -- cheaper/pricier, per-user vs custom-quote, what's included at a comparable
+tier/price point. Cite the competitor's pricing citation from their profile below.
+
+messaging_inconsistencies: Builderflow's own materials already flag a mismatch -- the
+homepage explicitly notes the portal says only Claim Scope is live while other modules are
+"rolling out next", yet the pricing page's comparison table shows FSM/Claim Scope/Work
+Orders/Estimates as already available (checkmark or add-on) on paid tiers. Extract these into
+structured entries -- topic, what the website says, what the portal says (if stated), what
+the guide says (if stated). citations MUST point to an exact URL from the "source:"/"url:"
+frontmatter of the pages below (source="website") -- never cite "app_summary" or any
+meta-source, cite the actual page. Don't invent inconsistencies beyond what's evidenced below.
+
+=== COMPETITOR PRICING ===
+{competitor_pricing}
+
+=== BUILDERFLOW PRICING PAGE (raw, see frontmatter for url) ===
+{builderflow_pricing}
+
+=== BUILDERFLOW HOMEPAGE (raw, see frontmatter for url) ===
+{builderflow_homepage}
+
+=== BUILDERFLOW APP SUMMARY (background context only -- cite the pages above, not this) ===
+{app_summary}
+"""
+
+
+def _format_pricing(profiles: dict) -> str:
+    chunks = []
+    for name, profile in profiles.items():
+        tiers = [
+            f"{t.name}: {t.price or 'no price shown'} -- {', '.join(t.included_features[:6])} "
+            f"(cite: {t.citation.ref})"
+            for t in profile.pricing_tiers
+        ]
+        chunks.append(f"-- {name} --\n" + "\n".join(tiers))
+    return "\n\n".join(chunks)
+
+
+def build_pricing_messaging(profiles: dict, app_summary: str) -> PricingMessagingResult:
+    prompt = PRICING_MESSAGING_PROMPT.format(
+        competitor_pricing=_format_pricing(profiles),
+        builderflow_pricing=BUILDERFLOW_PRICING_PATH.read_text(),
+        builderflow_homepage=BUILDERFLOW_HOMEPAGE_PATH.read_text(),
+        app_summary=app_summary,
+    )
+    key = hashlib.sha256(prompt.encode()).hexdigest()
+
+    def _call():
+        resp = client().responses.parse(
+            model=MINI_MODEL,
+            input=[{"role": "user", "content": prompt}],
+            text_format=PricingMessagingResult,
+        )
+        return resp.output_parsed.model_dump()
+
+    return PricingMessagingResult(**cached("analyze_pricing_messaging", key, _call))
+
+
+def select_top_pain_points(pain_points: list[PainPoint]) -> list[PainPoint]:
+    """Plain Python selection -- named-competitor complaints first, capped per theme for
+    diversity, so one noisy theme (e.g. data_integrity x4) doesn't crowd out the rest."""
+    named = [p for p in pain_points if p.affected_companies]
+    general = [p for p in pain_points if not p.affected_companies]
+
+    selected = []
+    per_theme = Counter()
+    for p in named + general:
+        if per_theme[p.theme] >= MAX_PER_THEME:
+            continue
+        selected.append(p)
+        per_theme[p.theme] += 1
+        if len(selected) >= TOP_PAIN_POINTS_CAP:
+            break
+    return selected
+
+
+def run() -> AnalysisResult:
+    app_summary = APP_SUMMARY_PATH.read_text()
+    screen_digest = _screen_digest_with_paths()
+    profiles = _competitor_profiles()
+    market = run_market()
+
+    print("  building gap matrix...")
+    gap_matrix = build_gap_matrix(profiles, market.trends, app_summary, screen_digest)
+    print("  building pricing comparison + messaging inconsistencies...")
+    pricing_messaging = build_pricing_messaging(profiles, app_summary)
+    top_pain_points = select_top_pain_points(market.pain_points)
+
+    result = AnalysisResult(
+        gap_matrix=gap_matrix.entries,
+        pricing_comparison=pricing_messaging.pricing_comparison,
+        top_pain_points=top_pain_points,
+        messaging_inconsistencies=pricing_messaging.messaging_inconsistencies,
+    )
+    OUT_PATH.parent.mkdir(exist_ok=True)
+    OUT_PATH.write_text(result.model_dump_json(indent=2))
+    return result
+
+
+if __name__ == "__main__":
+    result = run()
+    print(f"\n{len(result.gap_matrix)} gap matrix rows, "
+          f"{len(result.pricing_comparison)} pricing entries, "
+          f"{len(result.top_pain_points)} top pain points, "
+          f"{len(result.messaging_inconsistencies)} messaging inconsistencies")
+    print(result.model_dump_json(indent=2))

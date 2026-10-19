@@ -81,7 +81,12 @@ reviews that aren't evidenced here:
   software.
 - pain_points: concrete complaints or frustrations contractors have with these tools (set
   affected_companies to the specific competitor(s) a complaint names, or leave empty if it's
-  about the industry/category in general).
+  about the industry/category in general). Set theme to the SINGLE closest match from this
+  fixed list -- do not invent new tags, pick "other" only if truly nothing fits:
+  pricing_transparency, support, mobile_reliability, data_integrity (data loss/merge bugs/
+  export problems), onboarding (setup/training/learning curve), integrations,
+  automation_rigidity, feature_depth (missing or shallow features), tool_fragmentation
+  (needing multiple stitched-together tools), adoption (low adoption/unclear ROI), other.
 - review_snippets: citations (source="search", ref=the exact URL, note=a short quote or
   paraphrase of what the review said) pointing at specific Reddit/G2/Capterra review content.
 
