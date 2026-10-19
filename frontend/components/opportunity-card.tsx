@@ -1,14 +1,11 @@
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { StateChip } from "@/components/state-chip";
 import type { Opportunity } from "@/lib/opportunities";
 
 export function OpportunityCard({ opp }: { opp: Opportunity }) {
   return (
     <article className="flex flex-col rounded-xl border border-rule bg-sheet p-5">
-      <span className="self-start">
-        <StateChip has={opp.gap.builderflowHas} />
-      </span>
+      <span className="self-start rounded border border-rule-strong px-1.5 py-0.5 text-[12px] font-medium text-text-2">Idea</span>
       <h3 className="mt-3 text-[17px] leading-snug font-semibold tracking-tight">{opp.name}</h3>
       <p className="mt-1 text-[13px] text-text-2">
         {opp.gap.competitors.length ? `${opp.gap.competitors.join(", ")} ship it` : "No competitor ships it"}

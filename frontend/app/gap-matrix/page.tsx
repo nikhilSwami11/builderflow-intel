@@ -84,7 +84,7 @@ export default function GapMatrix() {
                         );
                       })}
                       <td className="px-5 py-2.5 whitespace-nowrap [&>span]:flex-nowrap">
-                        <Cites citations={g.citations} />
+                        <Cites citations={g.citations} label={false} />
                       </td>
                     </tr>
                   ))}

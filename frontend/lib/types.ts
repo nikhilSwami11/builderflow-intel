@@ -64,6 +64,8 @@ export type PricingCompany = {
   notes: string | null;
   bestFeature: string | null;
   flatUnlimited: boolean;
+  /** cheapest and dearest public $/month, parsed from the plan prices (null = none published) */
+  priceRange: { min: number; max: number; plus: boolean } | null;
   citation: Citation;
 };
 

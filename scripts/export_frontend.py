@@ -65,6 +65,23 @@ def norm_citations(cs: list[dict]) -> list[dict]:
     return [norm_citation(c) for c in cs]
 
 
+def price_range(plans: list[dict]) -> dict | None:
+    """Cheapest and dearest public $/month across a company's plans, parsed from the
+    hand-verified price strings. Text after a "+" ("+ $20/mo per extra user") or "(" is a
+    per-seat add-on, not the plan price, so it is dropped. Custom/contact-sales plans have no
+    number and are skipped; None when nothing is published."""
+    lows, highs, plus = [], [], False
+    for p in plans:
+        head = re.split(r"\s\+\s|\(", p["price"])[0]
+        nums = [int(n.replace(",", "")) for n in re.findall(r"\$([\d,]+)", head)]
+        if not nums:
+            continue
+        lows.append(min(nums))
+        highs.append(max(nums))
+        plus = plus or bool(re.search(r"\$[\d,]+\+", head))
+    return {"min": min(lows), "max": max(highs), "plus": plus} if lows else None
+
+
 def load_pricing() -> list[dict]:
     raw = yaml.safe_load((ROOT / "data" / "manual" / "competitor_pricing.yaml").read_text())
     out = []
@@ -81,6 +98,7 @@ def load_pricing() -> list[dict]:
                 "notes": co.get("notes"),
                 "bestFeature": co.get("best_feature"),
                 "flatUnlimited": bool(co.get("flat_unlimited_pricing")),
+                "priceRange": price_range(co["plans"]),
                 "citation": norm_citation(co["citation"]),
             }
         )
