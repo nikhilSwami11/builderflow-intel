@@ -6,16 +6,16 @@ legibly, grouped the way CLAUDE.md's tab list implies (tier, theme, category) ra
 flat lists.
 """
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 ANALYSIS_PATH = Path("data/cache/analysis_result.json")
 GROWTH_PATH = Path("data/cache/growth_advice.json")
 MARKET_PATH = Path("data/cache/market_insights.json")
 APP_SUMMARY_PATH = Path("data/app_summary.md")
-PRICING_MD_PATH = Path("data/builderflow_site/pricing.md")
 
 TIER_ORDER = ["table_stakes", "differentiator", "emerging"]
 TIER_LABEL = {
@@ -167,9 +167,6 @@ def tab_pricing(analysis: dict):
                 st.markdown(f"**Guide says:** {m['guide_says']}")
             render_citations(m["citations"], key_prefix=m["topic"])
 
-    with st.expander("Builderflow's full pricing page (raw, for reference)"):
-        st.markdown(load_text(str(PRICING_MD_PATH)))
-
 
 def tab_pain_points(market: dict):
     st.subheader("Market trends")
@@ -197,8 +194,32 @@ def tab_pain_points(market: dict):
             st.markdown(f"- [{r['ref']}]({r['ref']})" + (f" — {r['note']}" if r.get("note") else ""))
 
 
-def tab_growth_advisor(growth: dict):
+def tab_growth_advisor(growth: dict, analysis: dict, market: dict):
     st.subheader("Growth advisor recommendations")
+    st.caption("Every recommendation below is grounded in the signals summarized here first.")
+
+    snap1, snap2 = st.columns(2)
+    with snap1:
+        st.markdown("**Gap matrix, by tier**")
+        tier_counts = Counter(g["tier"] for g in analysis["gap_matrix"])
+        st.bar_chart(
+            pd.DataFrame(
+                {"features": [tier_counts.get(t, 0) for t in TIER_ORDER]},
+                index=[TIER_LABEL[t] for t in TIER_ORDER],
+            )
+        )
+    with snap2:
+        st.markdown("**Contractor pain points, by theme**")
+        theme_counts = Counter(p["theme"] for p in market["pain_points"])
+        ordered = sorted(theme_counts.items(), key=lambda kv: -kv[1])
+        st.bar_chart(
+            pd.DataFrame(
+                {"mentions": [c for _, c in ordered]},
+                index=[THEME_LABEL.get(t, t) for t, _ in ordered],
+            )
+        )
+
+    st.divider()
     by_cat = defaultdict(list)
     for r in growth["recommendations"]:
         by_cat[r["category"]].append(r)
@@ -210,6 +231,10 @@ def tab_growth_advisor(growth: dict):
         for r in recs:
             with st.expander(r["title"]):
                 st.write(r["detail"])
+                if r.get("evidence"):
+                    st.markdown("**Backed by:**")
+                    for e in r["evidence"]:
+                        st.markdown(f"- {e}")
                 render_citations(r["citations"], key_prefix=r["title"][:40])
 
 
@@ -283,7 +308,7 @@ def main():
     with pain:
         tab_pain_points(market)
     with advisor:
-        tab_growth_advisor(growth)
+        tab_growth_advisor(growth, analysis, market)
     with chat:
         tab_chat()
 

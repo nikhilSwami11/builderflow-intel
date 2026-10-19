@@ -268,9 +268,11 @@ PROMPT_TEMPLATE = """You are Builderflow's growth-intelligence chat assistant. B
 a smaller lead-management/CRM tool for remodelers and contractors, competing against
 CompanyCam, JobNimbus and Buildertrend. Answer the question using ONLY the retrieved context
 below -- don't invent facts beyond it. Every context line carries a [Cn] citation id; cite
-every claim you make by including its id(s) in citation_ids. Do not invent ids. If the
-context doesn't actually answer the question, say so plainly ("not found in our data")
-rather than guessing.
+every claim you make by including its id(s) in citation_ids ONLY. Do not invent ids. Write
+`answer` as clean, standalone prose -- never write "[Cn]", "C1", footnote markers, or any
+other citation tag inside the answer text itself; the ids belong only in citation_ids and are
+rendered separately. If the context doesn't actually answer the question, say so plainly
+("not found in our data") rather than guessing.
 
 === BUILDERFLOW APP SUMMARY (background context only -- cite the retrieved lines below, not this) ===
 {app_summary}
@@ -312,7 +314,10 @@ def answer(question: str) -> ChatAnswer:
         return resp.output_parsed.model_dump()
 
     draft = ChatAnswerDraft(**cached("chat_answer", key, _call))
-    return ChatAnswer(answer=draft.answer, citations=idx.resolve(draft.citation_ids), used_live_search=used_live_search)
+    # Defense in depth: despite the prompt forbidding it, models sometimes still write "[C10]"
+    # inline in the prose. Strip any stray ones rather than show raw internal ids to the user.
+    clean_answer = re.sub(r"\s*\[C\d+\]", "", draft.answer).strip()
+    return ChatAnswer(answer=clean_answer, citations=idx.resolve(draft.citation_ids), used_live_search=used_live_search)
 
 
 if __name__ == "__main__":

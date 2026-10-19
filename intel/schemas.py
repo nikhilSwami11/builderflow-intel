@@ -130,6 +130,7 @@ class GrowthRecommendation(BaseModel):
     detail: str
     category: Literal["build", "double_down", "positioning", "pricing", "quick_win"]
     citations: list[Citation] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)  # plain-English facts this traces back to
 
 
 class GrowthAdvice(BaseModel):

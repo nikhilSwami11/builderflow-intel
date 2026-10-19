@@ -63,45 +63,74 @@ Produce a set of recommendations across all five categories:
 """
 
 
-def _format_gap_matrix(analysis: AnalysisResult, idx: CitationIndex) -> str:
+def _record_evidence(evidence_by_cid: dict, idx: CitationIndex, citations, desc: str) -> str:
+    """Tag citations and remember which plain-English fact each resulting id traces back to,
+    so a recommendation's citation_ids can later be turned back into "backed by: ..." lines
+    instead of just raw source links."""
+    ids = [idx.add(c) for c in citations]
+    for cid in ids:
+        evidence_by_cid.setdefault(cid, []).append(desc)
+    return " ".join(f"[{i}]" for i in ids)
+
+
+def _format_gap_matrix(analysis: AnalysisResult, idx: CitationIndex, evidence_by_cid: dict) -> str:
     lines = []
     for g in analysis.gap_matrix:
+        desc = (
+            f"Gap matrix: \"{g.feature}\" ({g.tier}) -- Builderflow has={g.builderflow_has}, "
+            f"competitors with it: {', '.join(g.competitors_with_it) or 'none'}"
+        )
+        tag = _record_evidence(evidence_by_cid, idx, g.citations, desc)
         lines.append(
             f"- [{g.tier}] {g.feature} -- builderflow_has={g.builderflow_has}, "
-            f"competitors_with_it={g.competitors_with_it} {idx.tag(g.citations)}"
+            f"competitors_with_it={g.competitors_with_it} {tag}"
         )
     return "\n".join(lines)
 
 
-def _format_pricing(analysis: AnalysisResult, idx: CitationIndex) -> str:
-    return "\n".join(
-        f"- {p.company}: {p.summary} {idx.tag([p.citation])}" for p in analysis.pricing_comparison
-    )
+def _format_pricing(analysis: AnalysisResult, idx: CitationIndex, evidence_by_cid: dict) -> str:
+    lines = []
+    for p in analysis.pricing_comparison:
+        desc = f"Pricing -- {p.company}: {p.summary}"
+        tag = _record_evidence(evidence_by_cid, idx, [p.citation], desc)
+        lines.append(f"- {p.company}: {p.summary} {tag}")
+    return "\n".join(lines)
 
 
-def _format_pain_points(analysis: AnalysisResult, idx: CitationIndex) -> str:
-    return "\n".join(
-        f"- [{p.theme}] {p.description} -- affected={p.affected_companies} {idx.tag([p.citation])}"
-        for p in analysis.top_pain_points
-    )
+def _format_pain_points(analysis: AnalysisResult, idx: CitationIndex, evidence_by_cid: dict) -> str:
+    lines = []
+    for p in analysis.top_pain_points:
+        who = ", ".join(p.affected_companies) if p.affected_companies else "industry-wide"
+        desc = f"Pain point ({p.theme}, {who}): {p.description}"
+        tag = _record_evidence(evidence_by_cid, idx, [p.citation], desc)
+        lines.append(f"- [{p.theme}] {p.description} -- affected={p.affected_companies} {tag}")
+    return "\n".join(lines)
 
 
-def _format_messaging(analysis: AnalysisResult, idx: CitationIndex) -> str:
-    return "\n".join(
-        f"- {m.topic}: website_says={m.website_says!r}, portal_says={m.portal_says!r}, "
-        f"guide_says={m.guide_says!r} {idx.tag(m.citations)}"
-        for m in analysis.messaging_inconsistencies
-    )
+def _format_messaging(analysis: AnalysisResult, idx: CitationIndex, evidence_by_cid: dict) -> str:
+    lines = []
+    for m in analysis.messaging_inconsistencies:
+        desc = (
+            f"Messaging inconsistency -- {m.topic}: website says {m.website_says!r}, "
+            f"portal says {m.portal_says!r}, guide says {m.guide_says!r}"
+        )
+        tag = _record_evidence(evidence_by_cid, idx, m.citations, desc)
+        lines.append(
+            f"- {m.topic}: website_says={m.website_says!r}, portal_says={m.portal_says!r}, "
+            f"guide_says={m.guide_says!r} {tag}"
+        )
+    return "\n".join(lines)
 
 
 def build_growth_advice(analysis: AnalysisResult, app_summary: str) -> GrowthAdvice:
     idx = CitationIndex()
+    evidence_by_cid: dict[str, list[str]] = {}
     # Build every tag (and therefore every id) up front, in a fixed order, so the prompt --
     # and the cache key -- are deterministic regardless of dict/set iteration order.
-    gap_matrix = _format_gap_matrix(analysis, idx)
-    pricing_comparison = _format_pricing(analysis, idx)
-    pain_points = _format_pain_points(analysis, idx)
-    messaging_inconsistencies = _format_messaging(analysis, idx)
+    gap_matrix = _format_gap_matrix(analysis, idx, evidence_by_cid)
+    pricing_comparison = _format_pricing(analysis, idx, evidence_by_cid)
+    pain_points = _format_pain_points(analysis, idx, evidence_by_cid)
+    messaging_inconsistencies = _format_messaging(analysis, idx, evidence_by_cid)
 
     prompt = PROMPT_TEMPLATE.format(
         gap_matrix=gap_matrix,
@@ -122,15 +151,23 @@ def build_growth_advice(analysis: AnalysisResult, app_summary: str) -> GrowthAdv
 
     draft = GrowthAdviceDraft(**cached("growth_advisor", key, _call))
 
-    recommendations = [
-        GrowthRecommendation(
-            title=r.title,
-            detail=r.detail,
-            category=r.category,
-            citations=idx.resolve(r.citation_ids),
+    recommendations = []
+    for r in draft.recommendations:
+        seen, evidence = set(), []
+        for cid in r.citation_ids:
+            for desc in evidence_by_cid.get(cid, []):
+                if desc not in seen:
+                    seen.add(desc)
+                    evidence.append(desc)
+        recommendations.append(
+            GrowthRecommendation(
+                title=r.title,
+                detail=r.detail,
+                category=r.category,
+                citations=idx.resolve(r.citation_ids),
+                evidence=evidence,
+            )
         )
-        for r in draft.recommendations
-    ]
     return GrowthAdvice(recommendations=recommendations)
 
 

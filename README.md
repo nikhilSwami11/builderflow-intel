@@ -162,8 +162,11 @@ source .venv/bin/activate
 python -m intel.graph
 ```
 ```
-gap_matrix=15 pricing_comparison=3 top_pain_points=8 messaging_inconsistencies=3 growth_recommendations=21
+gap_matrix=16 pricing_comparison=3 top_pain_points=8 messaging_inconsistencies=4 growth_recommendations=20
 ```
+*(Row counts can shift slightly between regenerations -- gap-matrix synthesis and pain-point
+selection involve LLM judgment calls, e.g. how finely to split two similar features into one
+row vs two. Counts are illustrative, not a contract.)*
 *(The "fetching.../searching..." lines you'll see are `intel/cache.py` cache lookups, not
 live network calls -- every one of them is a hit once the cache is warm.)*
 
@@ -182,10 +185,12 @@ questions of the LLM until you actually type one.
   changelog, each cached by URL.
 - **Market**: 6 industry trends, 16 themed contractor pain points, 10 review snippets, all
   via live Tavily search, cached by query.
-- **Analysis**: 15 gap-matrix rows, 3 pricing comparisons, 8 selected top pain points, 3
+- **Analysis**: ~16 gap-matrix rows, 3 pricing comparisons, 8 selected top pain points, ~4
   messaging inconsistencies.
-- **Growth advice**: 21 recommendations (8 build, 4 positioning, 3 double-down, 3 pricing, 3
-  quick-win), every one citation-backed.
+- **Growth advice**: ~20 recommendations across build / double-down / positioning / pricing /
+  quick-win, every one citation-backed and now also traceable to the specific gap-matrix row,
+  pain point, pricing row, or messaging flag that justified it (`evidence` field, surfaced in
+  the Growth Advisor tab).
 - **Chat index**: 417 chunks across all of the above.
 
 ## What's not done (cut for time, not forgotten)
