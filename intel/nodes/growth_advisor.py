@@ -17,9 +17,10 @@ from collections import Counter
 from pathlib import Path
 
 from intel.cache import cached
+from intel.citations import CitationIndex
 from intel.config import GROWTH_MODEL, client
 from intel.nodes.analyze import run as run_analyze
-from intel.schemas import AnalysisResult, Citation, GrowthAdvice, GrowthAdviceDraft, GrowthRecommendation
+from intel.schemas import AnalysisResult, GrowthAdvice, GrowthAdviceDraft, GrowthRecommendation
 
 APP_SUMMARY_PATH = Path("data/app_summary.md")
 OUT_PATH = Path("data/cache/growth_advice.json")
@@ -60,29 +61,6 @@ Produce a set of recommendations across all five categories:
 === BUILDERFLOW APP SUMMARY (for context on what it already does -- not citable, no id) ===
 {app_summary}
 """
-
-
-class CitationIndex:
-    """Dedupe every Citation across analyze.py's output and assign short, stable ids."""
-
-    def __init__(self):
-        self._by_key: dict[tuple, str] = {}
-        self._by_id: dict[str, Citation] = {}
-
-    def add(self, citation: Citation) -> str:
-        key = (citation.source, citation.ref)
-        if key in self._by_key:
-            return self._by_key[key]
-        cid = f"C{len(self._by_id) + 1}"
-        self._by_key[key] = cid
-        self._by_id[cid] = citation
-        return cid
-
-    def tag(self, citations: list[Citation]) -> str:
-        return " ".join(f"[{self.add(c)}]" for c in citations)
-
-    def resolve(self, ids: list[str]) -> list[Citation]:
-        return [self._by_id[i] for i in ids if i in self._by_id]
 
 
 def _format_gap_matrix(analysis: AnalysisResult, idx: CitationIndex) -> str:

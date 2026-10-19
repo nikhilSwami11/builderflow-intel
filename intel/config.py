@@ -6,8 +6,9 @@ from openai import OpenAI
 
 load_dotenv()
 
-MINI_MODEL = "gpt-5-mini"  # vision pass + collect/extract/market/analyze nodes
+MINI_MODEL = "gpt-5-mini"  # vision pass + collect/extract/market/analyze/chat
 GROWTH_MODEL = "gpt-5"  # growth_advisor node only
+EMBEDDING_MODEL = "text-embedding-3-small"  # Chroma RAG index
 
 
 def client() -> OpenAI:

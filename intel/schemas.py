@@ -151,6 +151,22 @@ class GrowthAdviceDraft(BaseModel):
     recommendations: list[GrowthRecommendationDraft] = Field(default_factory=list)
 
 
+# ---- chat (RAG) ----
+
+class ChatAnswerDraft(BaseModel):
+    """Call-shaped draft: cites by short id into a retrieval-built index, same reasoning as
+    GrowthRecommendationDraft."""
+
+    answer: str
+    citation_ids: list[str] = Field(default_factory=list)
+
+
+class ChatAnswer(BaseModel):
+    answer: str
+    citations: list[Citation] = Field(default_factory=list)
+    used_live_search: bool = False
+
+
 # ---- screenshots (vision pass) ----
 
 class ScreenVisionOutput(BaseModel):

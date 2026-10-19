@@ -214,9 +214,43 @@ def tab_growth_advisor(growth: dict):
 
 
 def tab_chat():
+    from intel.rag import answer as rag_answer
+
     st.subheader("Chat")
-    st.caption("Coming in phase 7 -- RAG over guide/website/screenshots/market data with citations, plus live search fallback.")
-    st.text_input("Ask a growth question", disabled=True, placeholder="Not wired up yet")
+    st.caption("RAG over the guide, website, screenshots, market insights and every analysis/growth finding -- with a live search fallback when retrieval is weak.")
+
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    for turn in st.session_state.chat_history:
+        with st.chat_message(turn["role"]):
+            st.write(turn["content"])
+            if turn.get("used_live_search"):
+                st.caption("🔎 Augmented with a live web search (retrieval alone wasn't a strong match)")
+            if turn.get("citations"):
+                render_citations(turn["citations"], key_prefix=f"chat-{len(st.session_state.chat_history)}")
+
+    question = st.chat_input("Ask a growth question")
+    if question:
+        st.session_state.chat_history.append({"role": "user", "content": question})
+        with st.chat_message("user"):
+            st.write(question)
+        with st.chat_message("assistant"):
+            with st.spinner("Retrieving and reasoning..."):
+                result = rag_answer(question)
+            st.write(result.answer)
+            if result.used_live_search:
+                st.caption("🔎 Augmented with a live web search (retrieval alone wasn't a strong match)")
+            citations = [c.model_dump() for c in result.citations]
+            render_citations(citations, key_prefix=f"chat-live-{len(st.session_state.chat_history)}")
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "content": result.answer,
+                "used_live_search": result.used_live_search,
+                "citations": citations,
+            }
+        )
 
 
 def main():
@@ -230,6 +264,8 @@ def main():
             + ". Run `python -m intel.graph` (or the individual node modules) first."
         )
         st.stop()
+    if not Path("data/cache/chroma").exists():
+        st.warning("Chat index not built yet -- run `python -m intel.rag` to enable the Chat tab.")
 
     analysis = load_json(str(ANALYSIS_PATH))
     growth = load_json(str(GROWTH_PATH))
