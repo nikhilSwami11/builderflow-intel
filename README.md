@@ -182,7 +182,12 @@ questions of the LLM until you actually type one.
 - **Builderflow**: 265 guide sections, 10 website pages, 98 screenshots across 46 flows → one
   ~1500-token `app_summary.md` that grounds every downstream node.
 - **Competitors**: CompanyCam, JobNimbus, Buildertrend — homepage, pricing, features,
-  changelog, each cached by URL.
+  changelog, each cached by URL (feeds the gap matrix / growth advisor / chat).
+- **Pricing tab specifically** uses hand-verified pricing for Builderflow, JobNimbus,
+  CompanyCam, Roofr and JobTread (`data/manual/competitor_pricing.yaml`, sourced from
+  `data/competition.txt` + Builderflow's own pricing page) instead of LLM-extracted dollar
+  figures — exact prices need to be exact, not inferred from a scrape. AI still covers
+  features, positioning, and messaging-inconsistency analysis.
 - **Market**: 6 industry trends, 16 themed contractor pain points, 10 review snippets, all
   via live Tavily search, cached by query.
 - **Analysis**: ~16 gap-matrix rows, 3 pricing comparisons, 8 selected top pain points, ~4

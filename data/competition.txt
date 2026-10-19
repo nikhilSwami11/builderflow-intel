@@ -1,0 +1,73 @@
+
+CONTRACTOR SOFTWARE RESEARCH DUMP
+
+
+1. JobNimbus
+
+
+💰 Pricing Estimates By Team Size
+
+• Solo Operator: $245 to $300 / month (Base fee + 1 user seat)
+• Team of 5: $325 to $925 / month (Pro tier plan + 5 user seats)
+• Team of 10: $425 to $1,300 / month (Base fee + 10 user seats)
+
+🏆 Key Value Propositions (Where it Beats Competitors)
+
+• Custom Workflows & Boards: Allows highly tailored, drag-and-drop visual pipelines (similar to Trello) for complex multi-stage projects like insurance restoration. Competitors like Jobber restrict users to rigid, basic "Quote-to-Invoice" templates.
+• Supplier Integrations: Features direct digital material ordering inside the CRM with major exterior distributors (e.g., ABC Supply and Beacon). Avoids the need to manually export PDFs and email them to vendors.
+• 14-Day Free Trial: Fully open trial to test software and mobile apps instantly without required sales interaction. Closest competitor AccuLynx completely gates their platform behind a mandatory sales demo.
+• QuickBooks Desktop Sync: Offers a reliable, native two-way sync for legacy QuickBooks Desktop and Server versions. Most modern cloud alternatives only support QuickBooks Online.
+
+⚠️ Hidden Fees & Transaction Costs
+
+• Onboarding: No mandatory setup fees, but advanced training or third-party data migration requires a paid professional services agreement.
+• JobNimbus Payments: Credit/debit processing costs 3.2% + $0.29 per transaction. Requires a one-time $20 boarding fee deducted from the first payout. Dispute/chargeback inquiries cost $15.
+• Integrations: Standard property measurement or photo tools (like EagleView, HOVER, or CompanyCam) require separate external subscriptions to sync.
+
+2. CompanyCam
+
+
+💰 2026 Tiered Pricing Structure
+
+• Core Plan ($63/mo annual | $79 month-to-month): Includes 1 user (2-user strict maximum). Built for solo operators needing simple photo tracking.
+• Crew Plan ($119-$129/mo annual | $149 month-to-month): Includes 3 users. Adds project checklists, task assignments, and AI features.
+• Scale Plan ($199-$249/mo annual | $249 month-to-month): Includes 3 users. Adds advanced features like LiDAR 3D scanning, client signatures, and custom reports.
+• Enterprise Plan: Custom quote only. Designed for large operations with 50+ users.
+• Extra User Overages: Adding individual users outside of bundled tiers costs $29/mo (billed annually) or $34/mo (month-to-month).
+
+🏆 Key Value Proposition (What it Does Best)
+
+• Zero-Effort Location Organization: Field crews open the app at a jobsite, snap photos, and the system automatically uses GPS geotagging and timestamps to instantly drop media into the correct project folder. Creates a hands-free, cloud-stored visual timeline that syncs back to the office or secondary CRMs (like JobNimbus) in real time to protect against liability.
+
+3. Roofr
+
+
+💰 Tiered Pricing Structure (All include Unlimited Users)
+
+• Starter ($0/mo): Free-forever tier. Includes $19 roof measurement reports (delivered within 24 hours), 1 basic job board, material ordering, and a strict 10-trial limit for proposals, invoices, and work orders.
+• Measure+ ($109/mo): Lowers measurement report costs to $13 each. Guarantees 2-to-6-hour delivery times and adds material calculations, waste factors, and CSV downloads.
+• Essentials ($249/mo): Drops measurement report delivery to under 2 hours ($13/ea). Unlocks unlimited proposals, invoices, work orders, contracts, and e-signatures. Adds built-in customer SMS texting.
+• Scale ($349/mo): Complete CRM layer. Unlocks 7 customizable job boards, custom tags, crew management, 25+ automated actions, live profit margins/job costing data, and direct QuickBooks integration.
+
+🏆 Key Value Proposition (What it Does Best)
+
+• Aerial Measurement & Instant Estimating Engine: Generates highly professional blueprint reports using satellite imagery in under two hours without climbing ladders. Once measured, the software automatically calculates material quantities, factors in waste percentages, and instantly auto-populates a signable digital proposal for the customer.
+
+4. JobTread
+
+
+💰 Internal User Pricing Structure
+
+• Monthly Plan: $199/month (includes 1st user) + $20/month for each additional internal user.
+• Annual Plan: $159/month (includes 1st user) + $18/month for each additional internal user.
+• Volume Discounts: Tiered price cuts apply automatically to the per-seat rate once a team passes 10 internal users.
+
+👥 User Permissions & Roles Rule
+
+• Internal Users (Paid): Employees requiring backend system access to modify estimates, view company financials, alter schedules, and run business reports.
+• External Portal Users (Free & Unlimited): Customers, subcontractors, suppliers, and vendors can be added for free to private portals to sign off on work, check schedules, or view tasks.
+• Basic Field Crew (Free): Laborers who only use the app to log daily notes, upload photos, view schedules, or check off tasks do not incur a seat charge.
+
+🏆 Key Value Proposition (What it Does Best)
+
+• Budget-First Job Costing Engine: Directly links estimating to back-end project budgets using a built-in cost-code catalog. When an estimate is generated for a homeowner, JobTread automatically builds the project budget behind the scenes. As vendor bills, sub invoices, and field hours populate, real-time profit margins update instantly to prevent profit fade.

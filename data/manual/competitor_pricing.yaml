@@ -1,0 +1,89 @@
+# Hand-verified pricing, from data/competition.txt (manually researched, Oct 2026) and
+# Builderflow's own published pricing page. Not LLM-extracted -- dollar figures need to be
+# exact, and competitor pricing pages are inconsistent/gated. AI still covers features,
+# positioning, and "what's good" framing elsewhere in the pipeline -- just not these numbers.
+
+builderflow:
+  name: Builderflow
+  plans:
+    - label: Starter
+      price: "Contact sales -- no published $ rate"
+      users: "Up to 3"
+    - label: Professional
+      price: "Contact sales -- no published $ rate"
+      users: "Up to 10"
+    - label: Premium
+      price: "Contact sales -- no published $ rate"
+      users: "Unlimited"
+    - label: Enterprise
+      price: "Custom quote"
+      users: "Unlimited"
+  notes: "No dollar pricing published anywhere on the site -- tiers are differentiated by user limit and feature set, not list price."
+  citation: {source: website, ref: "https://builderflow.app/pricing/"}
+
+jobnimbus:
+  name: JobNimbus
+  plans:
+    - label: Solo Operator
+      price: "$245-$300/mo"
+      users: "1 (base fee + 1 seat)"
+    - label: Team of 5
+      price: "$325-$925/mo"
+      users: "5 (Pro tier + 5 seats)"
+    - label: Team of 10
+      price: "$425-$1,300/mo"
+      users: "10 (base fee + 10 seats)"
+  notes: "Payments processing adds 3.2% + $0.29/transaction, a $20 one-time boarding fee, and $15 per dispute. Property measurement/photo tools (EagleView, HOVER, CompanyCam) need separate subscriptions."
+  best_feature: "Custom drag-and-drop workflow boards for complex multi-stage projects (e.g. insurance restoration) -- most competitors force rigid quote-to-invoice templates. Also direct supplier ordering (ABC Supply, Beacon) instead of manual PDF export."
+  citation: {source: manual, ref: "data/competition.txt"}
+
+companycam:
+  name: CompanyCam
+  plans:
+    - label: Core
+      price: "$63/mo annual | $79/mo month-to-month"
+      users: "1 (2 max)"
+    - label: Crew
+      price: "$119-$129/mo annual | $149/mo month-to-month"
+      users: "3"
+    - label: Scale
+      price: "$199-$249/mo annual | $249/mo month-to-month"
+      users: "3"
+    - label: Enterprise
+      price: "Custom quote"
+      users: "50+"
+  notes: "Extra users beyond a plan's bundle cost $29/mo (annual) or $34/mo (month-to-month) each."
+  best_feature: "Zero-effort location organization -- GPS geotagging + timestamps auto-file jobsite photos into the right project folder in real time, syncing back to the office or a secondary CRM."
+  citation: {source: manual, ref: "data/competition.txt"}
+
+roofr:
+  name: Roofr
+  plans:
+    - label: Starter
+      price: "$0/mo"
+      users: "Unlimited"
+    - label: Measure+
+      price: "$109/mo"
+      users: "Unlimited"
+    - label: Essentials
+      price: "$249/mo"
+      users: "Unlimited"
+    - label: Scale
+      price: "$349/mo"
+      users: "Unlimited"
+  notes: "All tiers include unlimited users. Higher tiers mainly buy faster/cheaper measurement reports and more CRM depth, not more seats."
+  best_feature: "Aerial measurement + instant estimating -- satellite-based roof measurement reports in under 2 hours, auto-populating a signable customer proposal."
+  citation: {source: manual, ref: "data/competition.txt"}
+
+jobtread:
+  name: JobTread
+  plans:
+    - label: Monthly
+      price: "$199/mo (1st user) + $20/mo per extra internal user"
+      users: "Pay-per-internal-user"
+    - label: Annual
+      price: "$159/mo (1st user) + $18/mo per extra internal user"
+      users: "Pay-per-internal-user, volume discount after 10"
+  notes: "External portal users (customers, subs, vendors) and basic field crew logging notes/photos are free and unlimited -- only backend/financial users are seat-charged."
+  best_feature: "Budget-first job costing -- an estimate auto-builds a live project budget, and real-time profit margins update as vendor bills, sub invoices, and field hours come in."
+  citation: {source: manual, ref: "data/competition.txt"}

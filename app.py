@@ -11,11 +11,16 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import yaml
 
 ANALYSIS_PATH = Path("data/cache/analysis_result.json")
 GROWTH_PATH = Path("data/cache/growth_advice.json")
 MARKET_PATH = Path("data/cache/market_insights.json")
 APP_SUMMARY_PATH = Path("data/app_summary.md")
+MANUAL_PRICING_PATH = Path("data/manual/competitor_pricing.yaml")
+# Builderflow first (house brand, shown as the reference column), then everyone else in the
+# order they were researched.
+PRICING_ORDER = ["builderflow", "jobnimbus", "companycam", "roofr", "jobtread"]
 
 TIER_ORDER = ["table_stakes", "differentiator", "emerging"]
 TIER_LABEL = {
@@ -60,6 +65,18 @@ def load_json(path: str) -> dict:
 @st.cache_data
 def load_text(path: str) -> str:
     return Path(path).read_text()
+
+
+@st.cache_data
+def load_yaml(path: str) -> dict:
+    return yaml.safe_load(Path(path).read_text())
+
+
+def esc(text: str) -> str:
+    """Streamlit's markdown renderer treats $...$ as inline LaTeX (KaTeX) -- any text with two
+    dollar amounts in it (e.g. "$63/mo, Crew $119/mo") otherwise renders as mangled math
+    instead of plain text. Escape every "$" before handing free-form text to st.markdown/write."""
+    return (text or "").replace("$", "\\$")
 
 
 def render_citations(citations: list[dict], key_prefix: str) -> None:
@@ -145,14 +162,30 @@ def tab_gap_matrix(analysis: dict):
                 render_citations(g["citations"], key_prefix=g["feature"])
 
 
-def tab_pricing(analysis: dict):
+def _pricing_table(company: dict) -> pd.DataFrame:
+    rows = [{"Plan": p["label"], "Price": p["price"], "Users": p.get("users", "--")} for p in company["plans"]]
+    return pd.DataFrame(rows).set_index("Plan")
+
+
+def tab_pricing(analysis: dict, pricing: dict):
     st.subheader("Pricing comparison")
-    cols = st.columns(len(analysis["pricing_comparison"]) or 1)
-    for col, p in zip(cols, analysis["pricing_comparison"]):
-        with col:
-            st.markdown(f"#### {p['company']}")
-            st.write(p["summary"])
-            render_citations([p["citation"]], key_prefix=p["company"])
+    st.caption(
+        "Hand-verified from each company's public pricing page, not LLM-extracted -- dollar "
+        "figures need to be exact. AI is still used for features, positioning and messaging below."
+    )
+
+    companies = [pricing[k] for k in PRICING_ORDER if k in pricing]
+    for row_start in range(0, len(companies), 2):
+        cols = st.columns(2)
+        for col, company in zip(cols, companies[row_start : row_start + 2]):
+            with col:
+                st.markdown(f"#### {company['name']}")
+                st.table(_pricing_table(company))
+                if company.get("notes"):
+                    st.caption(esc(company["notes"]))
+                if company.get("best_feature"):
+                    st.markdown(f"**Best at:** {esc(company['best_feature'])}")
+                render_citations([company["citation"]], key_prefix=company["name"])
 
     st.divider()
     st.subheader("Messaging inconsistencies")
@@ -160,11 +193,11 @@ def tab_pricing(analysis: dict):
     for m in analysis["messaging_inconsistencies"]:
         with st.expander(m["topic"]):
             if m.get("website_says"):
-                st.markdown(f"**Website says:** {m['website_says']}")
+                st.markdown(f"**Website says:** {esc(m['website_says'])}")
             if m.get("portal_says"):
-                st.markdown(f"**Portal says:** {m['portal_says']}")
+                st.markdown(f"**Portal says:** {esc(m['portal_says'])}")
             if m.get("guide_says"):
-                st.markdown(f"**Guide says:** {m['guide_says']}")
+                st.markdown(f"**Guide says:** {esc(m['guide_says'])}")
             render_citations(m["citations"], key_prefix=m["topic"])
 
 
@@ -295,6 +328,7 @@ def main():
     analysis = load_json(str(ANALYSIS_PATH))
     growth = load_json(str(GROWTH_PATH))
     market = load_json(str(MARKET_PATH))
+    pricing_data = load_yaml(str(MANUAL_PRICING_PATH))
 
     overview, gap, pricing, pain, advisor, chat = st.tabs(
         ["Overview", "Gap Matrix", "Pricing", "Pain Points & Market", "Growth Advisor", "Chat"]
@@ -304,7 +338,7 @@ def main():
     with gap:
         tab_gap_matrix(analysis)
     with pricing:
-        tab_pricing(analysis)
+        tab_pricing(analysis, pricing_data)
     with pain:
         tab_pain_points(market)
     with advisor:
