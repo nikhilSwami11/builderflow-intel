@@ -18,7 +18,7 @@ export function BarStrip({
             <span className="truncate" title={row.label}>
               {row.label}
             </span>
-            <span className="flex h-3.5 overflow-hidden rounded-sm bg-blue-wash" role="img" aria-label={`${row.label}: ${row.segments.filter((s) => s.value).map((s) => `${s.value} ${s.label}`).join(", ")}`}>
+            <span className="flex h-3.5 overflow-hidden rounded-sm bg-accent-wash" role="img" aria-label={`${row.label}: ${row.segments.filter((s) => s.value).map((s) => `${s.value} ${s.label}`).join(", ")}`}>
               {row.segments.map(
                 (s) =>
                   s.value > 0 && <span key={s.label} className={s.className} style={{ width: `${(s.value / max) * 100}%` }} />,

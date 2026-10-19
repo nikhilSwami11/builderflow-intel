@@ -5,12 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export const SHEETS = [
-  { href: "/", sheet: "A-01", label: "Overview", icon: LayoutDashboard },
-  { href: "/gap-matrix", sheet: "A-02", label: "Gap Matrix", icon: Table2 },
-  { href: "/pricing", sheet: "A-03", label: "Pricing", icon: Tag },
-  { href: "/pain-points", sheet: "A-04", label: "Pain Points & Market", icon: TrendingDown },
-  { href: "/advisor", sheet: "A-05", label: "Growth Advisor", icon: Compass },
-  { href: "/chat", sheet: "A-06", label: "Chat", icon: MessageSquare },
+  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/gap-matrix", label: "Gap Matrix", icon: Table2 },
+  { href: "/pricing", label: "Pricing", icon: Tag },
+  { href: "/pain-points", label: "Pain Points & Market", icon: TrendingDown },
+  { href: "/advisor", label: "Growth Advisor", icon: Compass },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
 ] as const;
 
 export function Sidebar({ revised }: { revised: string }) {
@@ -25,7 +25,7 @@ export function Sidebar({ revised }: { revised: string }) {
       </div>
 
       <nav aria-label="Sheets" className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-1 lg:flex-col lg:overflow-visible lg:pb-0">
-        {SHEETS.map(({ href, sheet, label, icon: Icon }) => {
+        {SHEETS.map(({ href, label, icon: Icon }) => {
           const on = active(href);
           return (
             <Link
@@ -38,18 +38,13 @@ export function Sidebar({ revised }: { revised: string }) {
             >
               <Icon size={17} strokeWidth={1.75} aria-hidden className="shrink-0" />
               <span className="flex-1">{label}</span>
-              <span className={`hidden font-mono text-[11px] tracking-wide lg:inline ${on ? "text-white" : "text-[#7f9bbd]"}`}>
-                {sheet}
-              </span>
             </Link>
           );
         })}
       </nav>
 
-      <p className="hidden border-t border-white/10 px-5 py-4 text-[12px] leading-snug text-[#7f9bbd] lg:block">
-        Built from cached pipeline output.
-        <br />
-        Revised <span className="tnum">{revised}</span>
+      <p className="hidden border-t border-white/10 px-5 py-4 text-[12px] leading-snug text-[#737373] lg:block">
+        Updated <span className="tnum">{revised}</span>
       </p>
     </aside>
   );

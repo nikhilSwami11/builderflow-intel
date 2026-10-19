@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUp, Globe } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Cites } from "@/components/cite";
 import type { Citation } from "@/lib/types";
@@ -53,10 +54,21 @@ export function Chat() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const seeded = useRef(false);
+  const seedQuestion = useSearchParams().get("q");
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
   }, [turns, busy]);
+
+  // A "Discuss" link from the Gap Matrix or Overview arrives as /chat?q=...: ask it once.
+  useEffect(() => {
+    if (seedQuestion && !seeded.current) {
+      seeded.current = true;
+      void send(seedQuestion);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedQuestion]);
 
   async function send(question: string) {
     const q = question.trim();
@@ -95,7 +107,7 @@ export function Chat() {
                 <button
                   key={s}
                   onClick={() => send(s)}
-                  className="rounded-md border border-rule px-3 py-2.5 text-left text-[13px] transition-colors duration-150 hover:border-blue hover:bg-blue-wash"
+                  className="rounded-md border border-rule px-3 py-2.5 text-left text-[13px] transition-colors duration-150 hover:border-accent hover:bg-accent-wash"
                 >
                   {s}
                 </button>
@@ -157,13 +169,13 @@ export function Chat() {
           }}
           rows={1}
           placeholder="Ask a growth question"
-          className="max-h-32 min-h-10 flex-1 resize-none rounded-md border border-rule-strong bg-sheet px-3 py-2 text-[14px] placeholder:text-text-2 focus:border-blue focus:outline-none"
+          className="max-h-32 min-h-10 flex-1 resize-none rounded-md border border-rule-strong bg-sheet px-3 py-2 text-[14px] placeholder:text-text-2 focus:border-accent focus:outline-none"
         />
         <button
           type="submit"
           disabled={busy || !input.trim()}
           aria-label="Send"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-blue text-white transition-colors duration-150 hover:bg-ink disabled:cursor-not-allowed disabled:bg-rule-strong"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent text-white transition-colors duration-150 hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-rule-strong"
         >
           <ArrowUp size={18} aria-hidden />
         </button>

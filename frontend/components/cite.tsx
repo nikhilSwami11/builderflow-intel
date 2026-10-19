@@ -30,7 +30,7 @@ function host(ref: string) {
 export function Cite({ citation, n }: { citation: Citation; n: number }) {
   const href = isUrl(citation.ref) ? citation.ref : citation.image ?? undefined;
   const bubble =
-    "inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full border border-blue/50 bg-blue-wash px-1 font-mono text-[11px] font-medium text-blue tnum transition-colors duration-150 hover:bg-blue hover:text-white";
+    "inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full border border-accent/50 bg-accent-wash px-1 font-mono text-[11px] font-medium text-accent tnum transition-colors duration-150 hover:bg-accent hover:text-white";
   const label = `Source ${n}: ${SOURCE_LABEL[citation.source]}`;
   const anchor = useRef<HTMLSpanElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number; below: boolean } | null>(null);

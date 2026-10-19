@@ -1,7 +1,7 @@
 import { BarStrip } from "@/components/bars";
 import { Cites } from "@/components/cite";
 import { Section } from "@/components/section";
-import { TitleBlock } from "@/components/title-block";
+import { PageTitle } from "@/components/page-title";
 import { bundle, THEME_LABEL } from "@/lib/data";
 import type { PainPoint } from "@/lib/types";
 
@@ -16,24 +16,19 @@ export default function PainPoints() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <TitleBlock
-        sheet="A-04"
-        title="Pain Points & Market"
-        purpose="What contractors complain about in competitors' products, and where the market is heading."
-        stat={{ label: "Pain points", value: String(painPoints.length) }}
-      />
+      <PageTitle title="Pain Points & Market" />
 
-      <Section title="Where the complaints cluster" note="Mentions per theme across CompanyCam, JobNimbus and Buildertrend reviews.">
+      <Section title="Where the complaints cluster">
         <BarStrip
           rows={themes.map(([t, ps]) => ({
             label: THEME_LABEL[t as keyof typeof THEME_LABEL],
-            segments: [{ value: ps.length, className: "bg-blue", label: "mentions" }],
+            segments: [{ value: ps.length, className: "bg-accent", label: "mentions" }],
           }))}
           max={themes[0][1].length}
         />
       </Section>
 
-      <Section title="Pain points by theme" note="Each one is quoted or summarized from a review source. Hover a number for the source.">
+      <Section title="Pain points by theme">
         <div className="space-y-6">
           {themes.map(([theme, ps]) => (
             <div key={theme}>
@@ -67,7 +62,7 @@ export default function PainPoints() {
           </ul>
         </Section>
 
-        <Section title="Review snippets" note="Excerpts from review sites, as found.">
+        <Section title="Review snippets">
           <ul className="divide-y divide-rule">
             {reviewSnippets.map((r, i) => (
               <li key={i} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">

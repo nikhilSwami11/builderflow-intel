@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
-/* Blueprint set: ink sidebar, cool paper ground, drawing-blue rules, redline for gaps. */
+/* Monochrome: black sidebar and accent, white ground, gray rules. Color only for status. */
 :root {
-  --ink: #0e2a47;
-  --ink-2: #16365a;
-  --ink-text: #c6d6ea;
-  --paper: #f5f8fc;
+  --ink: #0a0a0a;
+  --ink-2: #171717;
+  --ink-text: #a1a1a1;
+  --paper: #fafafa;
   --sheet: #ffffff;
-  --text: #0e2238;
-  --text-2: #4a5f78;
-  --rule: #c9d7e8;
-  --rule-strong: #8fa8c6;
-  --blue: #1d5fb8;
-  --blue-wash: #e4eefb;
+  --text: #0a0a0a;
+  --text-2: #666666;
+  --rule: #ebebeb;
+  --rule-strong: #d4d4d4;
+  --accent: #0a0a0a;
+  --accent-wash: #f2f2f2;
   --red: #c8372d;
   --red-wash: #fbe9e7;
   --amber: #9a6a00;
   --amber-wash: #fcf0d2;
   --green: #1f7a4d;
   --green-wash: #def2e7;
-  --stone: #5d6b7c;
-  --stone-wash: #e8edf3;
+  --stone: #666666;
+  --stone-wash: #f0f0f0;
 }
 
 @theme inline {
@@ -33,8 +33,8 @@
   --color-text-2: var(--text-2);
   --color-rule: var(--rule);
   --color-rule-strong: var(--rule-strong);
-  --color-blue: var(--blue);
-  --color-blue-wash: var(--blue-wash);
+  --color-accent: var(--accent);
+  --color-accent-wash: var(--accent-wash);
   --color-red: var(--red);
   --color-red-wash: var(--red-wash);
   --color-amber: var(--amber);
@@ -43,7 +43,7 @@
   --color-green-wash: var(--green-wash);
   --color-stone: var(--stone);
   --color-stone-wash: var(--stone-wash);
-  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -62,12 +62,12 @@ body {
 
 /* Browser surfaces themed from the palette */
 ::selection {
-  background: var(--blue);
+  background: var(--accent);
   color: #fff;
 }
 
 :focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
 }

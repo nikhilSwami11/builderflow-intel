@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { BarStrip } from "@/components/bars";
 import { CategoryChip } from "@/components/category-chip";
 import { Section } from "@/components/section";
-import { TitleBlock } from "@/components/title-block";
+import { PageTitle } from "@/components/page-title";
 import { bundle, CATEGORY_LABEL, CATEGORY_ORDER, THEME_LABEL } from "@/lib/data";
 
 export default function Advisor() {
@@ -17,15 +17,10 @@ export default function Advisor() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <TitleBlock
-        sheet="A-05"
-        title="Growth Advisor"
-        purpose="What to build, double down on and change. Open any recommendation to see the evidence it rests on."
-        stat={{ label: "Recommendations", value: String(recs.length) }}
-      />
+      <PageTitle title="Growth Advisor" />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="What the advice rests on" note={`${bundle.gapMatrix.length} gap-matrix rows, ${bundle.painPoints.length} pain points, ${bundle.pricing.length} pricing tables.`}>
+        <Section title="What the advice rests on">
           <p className="text-[14px]">
             {risky} gap-matrix rows are not fully covered. The most-mentioned complaint themes are{" "}
             {topThemes.map(([t, n], i) => (
@@ -41,7 +36,7 @@ export default function Advisor() {
           <BarStrip
             rows={CATEGORY_ORDER.map((c) => ({
               label: CATEGORY_LABEL[c],
-              segments: [{ value: recs.filter((r) => r.category === c).length, className: "bg-blue", label: "recommendations" }],
+              segments: [{ value: recs.filter((r) => r.category === c).length, className: "bg-accent", label: "recommendations" }],
             }))}
             max={Math.max(...CATEGORY_ORDER.map((c) => recs.filter((r) => r.category === c).length))}
           />
@@ -60,13 +55,13 @@ export default function Advisor() {
                   <li key={r.id}>
                     <Link href={`/advisor/${r.id}`} className="group flex items-start justify-between gap-4 py-3">
                       <span className="min-w-0">
-                        <span className="block text-[14px] font-medium group-hover:text-blue">{r.title}</span>
+                        <span className="block text-[14px] font-medium group-hover:text-accent">{r.title}</span>
                         <span className="mt-0.5 line-clamp-2 block max-w-[80ch] text-[13px] text-text-2">{r.detail}</span>
                         <span className="mt-1 block text-[12px] text-text-2 tnum">
                           {rows} linked evidence rows · {r.citations.length} sources
                         </span>
                       </span>
-                      <ArrowRight size={16} aria-hidden className="mt-1 shrink-0 text-text-2 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue" />
+                      <ArrowRight size={16} aria-hidden className="mt-1 shrink-0 text-text-2 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-accent" />
                     </Link>
                   </li>
                 );

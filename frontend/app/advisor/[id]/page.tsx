@@ -53,7 +53,7 @@ export default async function Recommendation({ params }: { params: Promise<{ id:
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link href="/advisor" className="inline-flex items-center gap-1.5 text-[13px] text-text-2 hover:text-blue">
+      <Link href="/advisor" className="inline-flex items-center gap-1.5 text-[13px] text-text-2 hover:text-accent">
         <ArrowLeft size={14} aria-hidden /> Growth Advisor
       </Link>
 
@@ -75,7 +75,7 @@ export default async function Recommendation({ params }: { params: Promise<{ id:
           <GapList rows={gapShown} />
           {gapMore.length > 0 && (
             <details className="mt-4 border-t border-rule pt-3">
-              <summary className="cursor-pointer text-[13px] font-medium text-blue">Also considered ({gapMore.length} more rows)</summary>
+              <summary className="cursor-pointer text-[13px] font-medium text-accent">Also considered ({gapMore.length} more rows)</summary>
               <div className="mt-3">
                 <GapList rows={gapMore} />
               </div>
@@ -90,7 +90,7 @@ export default async function Recommendation({ params }: { params: Promise<{ id:
             {pains.map((p) => (
               <li key={p.id} className="flex flex-wrap items-start gap-x-4 gap-y-1.5 py-3 first:pt-0 last:pb-0">
                 <span className="min-w-0 flex-1 basis-72 text-[14px]">
-                  <span className="mr-2 rounded bg-blue-wash px-1.5 py-0.5 text-[12px] font-medium text-blue">{THEME_LABEL[p.theme]}</span>
+                  <span className="mr-2 rounded bg-accent-wash px-1.5 py-0.5 text-[12px] font-medium text-accent">{THEME_LABEL[p.theme]}</span>
                   {p.description}
                 </span>
                 <span className="text-[13px] text-text-2">{p.companies.join(", ") || "Industry-wide"}</span>

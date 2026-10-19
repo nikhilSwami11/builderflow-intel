@@ -1,18 +1,13 @@
 import { Cites } from "@/components/cite";
 import { Section } from "@/components/section";
-import { TitleBlock } from "@/components/title-block";
+import { PageTitle } from "@/components/page-title";
 import { bundle } from "@/lib/data";
 
 export default function Pricing() {
   const { pricing, messaging } = bundle;
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <TitleBlock
-        sheet="A-03"
-        title="Pricing"
-        purpose="Public plans, hand-verified from each company's pricing page rather than extracted by AI."
-        stat={{ label: "Companies", value: String(pricing.length) }}
-      />
+      <PageTitle title="Pricing" />
 
       <div className="grid gap-6 md:grid-cols-2">
         {pricing.map((co) => (
@@ -20,7 +15,7 @@ export default function Pricing() {
             <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3">
               <h2 className="text-[16px] font-semibold tracking-tight">
                 {co.name}
-                {co.key === "builderflow" && <span className="ml-2 rounded bg-blue-wash px-1.5 py-0.5 text-[11px] font-medium text-blue">You</span>}
+                {co.key === "builderflow" && <span className="ml-2 rounded bg-accent-wash px-1.5 py-0.5 text-[11px] font-medium text-accent">You</span>}
               </h2>
               <Cites citations={[co.citation]} />
             </div>
