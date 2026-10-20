@@ -7,18 +7,21 @@ import type { Citation } from "./types";
 export const replySchema = z.object({
   answer: z.string().describe("The reply shown to the user. Plain text, no ids, no tags."),
   sources: z.array(z.string()).describe("Ids of the data items the answer relied on, e.g. G3, P2, D12. Empty if none."),
-  idea: z
-    .object({
-      title: z.string().describe("Max 8 words."),
-      parent: z.string().describe('Id of the earlier idea this refines or branches from, or "root".'),
-      why: z.string().describe("One sentence: why this is worth acting on."),
-    })
-    .nullable()
-    .describe("Only for a genuinely strong, specific, new idea. Otherwise null."),
+  ideas: z
+    .array(
+      z.object({
+        title: z.string().describe("Max 8 words."),
+        anchor: z.string().describe("A 3 to 8 word phrase copied EXACTLY from your answer where this idea is stated."),
+        parent: z.string().describe('Id of the earlier idea this refines or branches from, or "root".'),
+        why: z.string().describe("One sentence: why this is worth acting on."),
+      }),
+    )
+    .max(3)
+    .describe("Strong, specific, new ideas from this turn. Usually empty."),
 });
 
 export type Reply = z.infer<typeof replySchema>;
-export type Idea = NonNullable<Reply["idea"]>;
+export type Idea = Reply["ideas"][number];
 
 /** The stream carries the answer as text, then two data parts: the resolved sources and the idea. */
 export type ChatMessage = UIMessage<never, { sources: { citations: Citation[] }; idea: Idea }>;

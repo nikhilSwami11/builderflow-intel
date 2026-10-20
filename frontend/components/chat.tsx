@@ -24,15 +24,55 @@ const STARTERS = [
  *  follows a lead-in line in the same block) and **bold**. */
 const LIST_ITEM = /^\s*(?:[-•*]|\d+[.)])\s+/;
 
-function Prose({ text }: { text: string }) {
+type Marker = { id: string; anchor: string; title: string };
+
+function Prose({
+  text,
+  markers = [],
+  onMarker,
+}: {
+  text: string;
+  markers?: Marker[];
+  onMarker?: (id: string) => void;
+}) {
+  // Phrases the model flagged as ideas become clickable highlights that jump to their tree node.
+  const lower = text.toLowerCase();
+  const found = markers.filter(
+    (m) => m.anchor && lower.includes(m.anchor.toLowerCase()),
+  );
+  const marked = (str: string, key: number) => {
+    const hits = found.filter((m) =>
+      str.toLowerCase().includes(m.anchor.toLowerCase()),
+    );
+    if (!hits.length) return str;
+    const re = new RegExp(
+      `(${hits.map((m) => m.anchor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+      "i",
+    );
+    return str.split(re).map((part, i) => {
+      const m = hits.find((h) => h.anchor.toLowerCase() === part.toLowerCase());
+      return m ? (
+        <button
+          key={`${key}-${i}`}
+          onClick={() => onMarker?.(m.id)}
+          title={`Idea: ${m.title}`}
+          className="rounded-sm bg-[#fff1c2] px-0.5 underline decoration-[#c98a00] decoration-2 underline-offset-2 transition-colors duration-150 hover:bg-[#fde68a]"
+        >
+          {part}
+        </button>
+      ) : (
+        part
+      );
+    });
+  };
   const bold = (line: string) =>
     line.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
       part.startsWith("**") ? (
         <strong key={i} className="font-semibold">
-          {part.slice(2, -2)}
+          {marked(part.slice(2, -2), i)}
         </strong>
       ) : (
-        part
+        marked(part, i)
       ),
     );
 
@@ -67,8 +107,6 @@ function Prose({ text }: { text: string }) {
 
 const textOf = (m: ChatMessage) =>
   m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
-const ideaOf = (m: ChatMessage) =>
-  m.parts.flatMap((p) => (p.type === "data-idea" ? [p.data] : []))[0];
 const sourcesOf = (m: ChatMessage) =>
   m.parts.flatMap((p) => (p.type === "data-sources" ? p.data.citations : []));
 
@@ -140,6 +178,17 @@ function ChatPane({
   }, [seedQuestion, sendMessage]);
 
   const tree = buildTree(messages);
+  const [focus, setFocus] = useState<string | null>(null);
+  const markersOf = (m: ChatMessage) =>
+    tree
+      .filter((n) => n.messageId === m.id && n.anchor)
+      .map((n) => ({ id: n.id, anchor: n.anchor!, title: n.title }));
+  const unplaced = (m: ChatMessage) =>
+    tree.filter(
+      (n) =>
+        n.messageId === m.id &&
+        !(n.anchor && textOf(m).toLowerCase().includes(n.anchor.toLowerCase())),
+    );
   const jumpTo = (id: string) =>
     document
       .getElementById(`msg-${id}`)
@@ -190,27 +239,32 @@ function ChatPane({
                 id={`msg-${m.id}`}
                 className="max-w-[78ch] scroll-mt-4 text-[14px] leading-relaxed"
               >
-                <Prose text={textOf(m)} />
-                {ideaOf(m) && (
-                  <div className="mt-3 flex gap-2.5 rounded-lg border border-amber/40 bg-amber-wash px-3.5 py-3">
+                <Prose
+                  text={textOf(m)}
+                  markers={markersOf(m)}
+                  onMarker={setFocus}
+                />
+                {unplaced(m).map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => setFocus(n.id)}
+                    className="mt-3 flex w-full gap-2.5 rounded-lg border border-amber/40 bg-amber-wash px-3.5 py-3 text-left"
+                  >
                     <Lightbulb
                       size={16}
                       aria-hidden
                       className="mt-0.5 shrink-0 text-amber"
                     />
-                    <div>
-                      <p className="text-[13px] font-semibold">
-                        {ideaOf(m)!.title}
-                      </p>
-                      <p className="mt-0.5 text-[13px] text-text-2">
-                        {ideaOf(m)!.why}
-                      </p>
-                      <p className="mt-1 text-[11px] text-text-2">
-                        Added to the idea tree
-                      </p>
-                    </div>
-                  </div>
-                )}
+                    <span>
+                      <span className="block text-[13px] font-semibold">
+                        {n.title}
+                      </span>
+                      <span className="mt-0.5 block text-[13px] text-text-2">
+                        {n.why}
+                      </span>
+                    </span>
+                  </button>
+                ))}
                 {sourcesOf(m).length > 0 && (
                   <div className="mt-3">
                     <Cites citations={sourcesOf(m)} />
@@ -275,7 +329,14 @@ function ChatPane({
           </button>
         </form>
       </div>
-      <IdeaTree nodes={tree} onPick={jumpTo} />
+      <IdeaTree
+        nodes={tree}
+        focus={focus}
+        onPick={(n) => {
+          setFocus(n.id);
+          jumpTo(n.messageId);
+        }}
+      />
     </div>
   );
 }

@@ -14,7 +14,8 @@ const model = process.env.AI_GATEWAY_API_KEY ? "openai/gpt-5-mini" : openai("gpt
 
 export async function POST(req: Request) {
   const { messages }: { messages: ChatMessage[] } = await req.json();
-  const fullSystem = `${system}\n\n## IDEAS SO FAR IN THIS CONVERSATION (use these ids as idea.parent)\n${treeForPrompt(buildTree(messages))}`;
+  const nodes = buildTree(messages);
+  const fullSystem = `${system}\n\n## IDEAS SO FAR IN THIS CONVERSATION (use these ids as ideas[].parent; the next idea you add gets id N${nodes.length + 1})\n${treeForPrompt(nodes)}`;
 
   const stream = createUIMessageStream<ChatMessage>({
     execute: async ({ writer }) => {
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
         .flatMap((s) => sources[s.trim().toUpperCase()] ?? [])
         .filter((c) => !seen.has(`${c.source}|${c.ref}`) && seen.add(`${c.source}|${c.ref}`));
       writer.write({ type: "data-sources", data: { citations } });
-      if (reply.idea) writer.write({ type: "data-idea", data: reply.idea });
+      for (const idea of reply.ideas) writer.write({ type: "data-idea", data: idea });
     },
     onError: (e) => (e instanceof Error ? e.message : "Chat failed"),
   });
