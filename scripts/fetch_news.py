@@ -30,7 +30,7 @@ WINDOW_DAYS = 365
 
 FEEDS = {
     "industry": {
-        "keep": 30,
+        "keep": 10,
         "queries": [
             "contractor CRM software news",
             "remodeling contractors software industry",
@@ -41,7 +41,7 @@ FEEDS = {
         ],
     },
     "ai": {
-        "keep": 24,
+        "keep": 10,
         "queries": [
             "AI tools for contractors construction",
             "generative AI CRM sales automation",
@@ -93,14 +93,17 @@ PROMPT = {
     "industry": """Builderflow is a small CRM / lead-management product for remodelers and contractors.
 Below are news candidates. Pick the {keep} most relevant to the contractor-software market
 (competitors, pricing, funding, product launches, adoption, regulation). Skip duplicates, ads and
-generic listicles. Always keep every relevant item from the last 30 days, then fill with older ones,
-so the feed has recent stories in every period. For each pick: summary = one plain sentence on what happened, from the snippet
-only. builderflow_use = "".""",
+generic listicles. Candidates are listed newest first; when two are about equally relevant prefer the newer.
+Spread the picks across time: include some from the last week, the last month and older, so
+every date filter has stories (but never pick an irrelevant story just to fill a period). For each pick: summary = one plain sentence on what happened, from the snippet
+only. builderflow_use = a concrete idea for Builderflow ONLY if the story clearly suggests one,
+otherwise "".""",
     "ai": """Builderflow is a small CRM / lead-management product for remodelers and contractors
 (lead intake, estimates, inspections/claim scope, scheduling, field technicians, finance).
 Below are AI news candidates. Pick the {keep} that Builderflow could actually use or must respond
-to. Skip duplicates, ads, generic listicles and hype with no usable angle. Always keep every
-relevant item from the last 30 days, then fill with older ones, so every period has stories. For each pick:
+to. Skip duplicates, ads, generic listicles and hype with no usable angle. Candidates are listed newest first; when two are about equally relevant prefer the newer.
+Spread the picks across time: include some from the last week, the last month and older, so every date filter has
+stories (but never pick an irrelevant story just to fill a period). For each pick:
 summary = one plain sentence on what happened, from the snippet only. builderflow_use = one
 concrete sentence on how Builderflow could apply it (a feature, a workflow, a positioning move).
 Do not claim Builderflow lacks anything; suggest.""",
@@ -118,7 +121,7 @@ def build_feed(name: str) -> list[dict]:
         for r in search(q, days):
             if r["url"] not in seen and r["content"]:
                 seen[r["url"]] = r
-    cands = list(seen.values())
+    cands = sorted(seen.values(), key=lambda c: iso(c["date"]) or "", reverse=True)  # newest first
     listing = "\n\n".join(f"[{i}] {c['title']} ({c['date'] or 'no date'})\n{c['content'][:500]}" for i, c in enumerate(cands))
     prompt = PROMPT[name].format(keep=cfg["keep"]) + "\n\n=== CANDIDATES ===\n" + listing
 

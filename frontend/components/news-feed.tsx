@@ -116,6 +116,24 @@ export function NewsFeed({ items }: { items: NewsItem[] }) {
     (a, b) => Date.parse(b.published!) - Date.parse(a.published!),
   );
 
+  // Newest first, under a heading per age band, so widening the range visibly adds older sections.
+  const BANDS = [
+    { label: "Last 24 hours", max: 1 },
+    { label: "Earlier this week", max: 7 },
+    { label: "Earlier this month", max: 31 },
+    { label: "Past 6 months", max: 183 },
+    { label: "Past year", max: 366 },
+  ];
+  const ageDays = (n: NewsItem) =>
+    now === null ? 0 : (now - Date.parse(n.published!)) / DAY;
+  const groups = BANDS.map((band, i) => ({
+    label: band.label,
+    items: shown.filter(
+      (n) =>
+        ageDays(n) <= band.max && (i === 0 || ageDays(n) > BANDS[i - 1].max),
+    ),
+  })).filter((g) => g.items.length);
+
   const pill = (on: boolean) =>
     `rounded-md border px-3 py-1.5 text-[13px] transition-colors duration-150 ${on ? "border-ink bg-ink text-white" : "border-rule-strong text-text-2 hover:border-accent hover:text-text"}`;
 
@@ -158,10 +176,24 @@ export function NewsFeed({ items }: { items: NewsItem[] }) {
         ))}
       </div>
 
-      {shown.length ? (
-        <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {shown.map((n) => (
-            <Card key={n.id} n={n} now={now} />
+      {now === null ? (
+        <div className="min-h-64" />
+      ) : groups.length ? (
+        <div className="space-y-7">
+          {groups.map((g) => (
+            <div key={g.label}>
+              <h3 className="mb-3 flex items-baseline gap-2 text-[13px] font-semibold tracking-tight">
+                {g.label}{" "}
+                <span className="tnum font-normal text-text-2">
+                  {g.items.length}
+                </span>
+              </h3>
+              <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {g.items.map((n) => (
+                  <Card key={n.id} n={n} now={now} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : (
