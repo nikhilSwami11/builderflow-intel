@@ -4,13 +4,14 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { ArrowUp, Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Cites } from "@/components/cite";
 import { IdeaTree } from "@/components/idea-tree";
 import type { ChatMessage } from "@/lib/chat-types";
 import { buildTree, stripIdeaTags } from "@/lib/idea-tree";
 
-const STORE_KEY = "bf-chat-v1";
+const SLOTS = [1, 2, 3];
+const storeKey = (slot: number) => `bf-chat-v2-${slot}`;
 
 const STARTERS = [
   "What should Builderflow fix first in Work Orders?",
@@ -81,7 +82,18 @@ const textOf = (m: ChatMessage) =>
 const sourcesOf = (m: ChatMessage) =>
   m.parts.flatMap((p) => (p.type === "data-sources" ? p.data.citations : []));
 
-export function Chat() {
+function ChatPane({
+  slot,
+  seed,
+  onSaved,
+  onBusy,
+}: {
+  slot: number;
+  seed: string | null;
+  onSaved: () => void;
+  onBusy: (busy: boolean) => void;
+}) {
+  const STORE_KEY = storeKey(slot);
   const { messages, sendMessage, setMessages, status, error } =
     useChat<ChatMessage>({
       transport: new DefaultChatTransport({ api: "/api/chat" }),
@@ -90,8 +102,9 @@ export function Chat() {
   const [input, setInput] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
   const seeded = useRef(false);
-  const seedQuestion = useSearchParams().get("q");
+  const seedQuestion = seed;
   const busy = status === "submitted" || status === "streaming";
+  useEffect(() => onBusy(busy), [busy, onBusy]);
 
   // Keep the conversation across reloads (this browser only). A "Discuss" link (?q=) starts fresh.
   useEffect(() => {
@@ -111,13 +124,15 @@ export function Chat() {
         localStorage.setItem(STORE_KEY, JSON.stringify(messages));
       else localStorage.removeItem(STORE_KEY);
     } catch {}
-  }, [messages, status]);
+    onSaved();
+  }, [messages, status, STORE_KEY, onSaved]);
 
   function newChat() {
     setMessages([]);
     try {
       localStorage.removeItem(STORE_KEY);
     } catch {}
+    onSaved();
   }
 
   useEffect(() => {
@@ -270,6 +285,73 @@ export function Chat() {
         </form>
       </div>
       <IdeaTree nodes={tree} onPick={jumpTo} />
+    </div>
+  );
+}
+
+const titleOf = (slot: number): string | null => {
+  try {
+    const saved: ChatMessage[] = JSON.parse(
+      localStorage.getItem(storeKey(slot)) ?? "[]",
+    );
+    const first = saved.find((m) => m.role === "user");
+    return first ? textOf(first).slice(0, 28) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Up to three separate conversations, kept in this browser. */
+export function Chat() {
+  const seedQuestion = useSearchParams().get("q");
+  const [active, setActive] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [titles, setTitles] = useState<(string | null)[]>([null, null, null]);
+  const [ready, setReady] = useState(false);
+  const refresh = useCallback(() => setTitles(SLOTS.map(titleOf)), []);
+
+  // A "Discuss" link goes into the first empty chat (or the last one when all three are used).
+  useEffect(() => {
+    const t = SLOTS.map(titleOf);
+    setTitles(t);
+    if (seedQuestion) setActive(t.findIndex((x) => x === null) + 1 || 3);
+    setReady(true);
+  }, [seedQuestion]);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <div role="tablist" aria-label="Chats" className="flex gap-1.5">
+        {SLOTS.map((slot) => (
+          <button
+            key={slot}
+            role="tab"
+            aria-selected={active === slot}
+            disabled={busy && active !== slot}
+            onClick={() => setActive(slot)}
+            className={`max-w-48 truncate rounded-md border px-3 py-1.5 text-[13px] transition-colors duration-150 disabled:opacity-40 ${
+              active === slot
+                ? "border-ink bg-ink text-white"
+                : "border-rule-strong text-text-2 hover:border-accent hover:text-text"
+            }`}
+          >
+            {titles[slot - 1] ?? `Chat ${slot}`}
+          </button>
+        ))}
+      </div>
+      {ready && (
+        <ChatPane
+          key={active}
+          slot={active}
+          seed={
+            seedQuestion &&
+            active === (titles.findIndex((x) => x === null) + 1 || 3)
+              ? seedQuestion
+              : null
+          }
+          onSaved={refresh}
+          onBusy={setBusy}
+        />
+      )}
     </div>
   );
 }

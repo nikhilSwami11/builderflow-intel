@@ -7,9 +7,10 @@ import type { ChatMessage } from "./chat-types";
 export type IdeaNode = { id: string; title: string; parent: string | null; messageId: string };
 
 const TAG = /\[\[idea:\s*parent=([A-Za-z0-9]+)\s*\|\s*([^\]]+?)\s*\]\]/g;
-const PARTIAL_TAG = /\s*\[\[[^\]]*$/;
+const ANY_TAG = /\s*\[\[\s*idea[\s\S]*?\]\]/gi;
+const PARTIAL_TAG = /\s*\[(?:\[[\s\S]*)?$/;
 
-export const stripIdeaTags = (t: string) => t.replace(TAG, "").replace(PARTIAL_TAG, "");
+export const stripIdeaTags = (t: string) => t.replace(TAG, "").replace(ANY_TAG, "").replace(PARTIAL_TAG, "");
 
 export function buildTree(messages: ChatMessage[]): IdeaNode[] {
   const nodes: IdeaNode[] = [];
