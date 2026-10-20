@@ -8,7 +8,7 @@ import {
 } from "ai";
 import { buildChatContext } from "@/lib/chat-context";
 import { type ChatMessage, replySchema } from "@/lib/chat-types";
-import { buildTree, treeForPrompt } from "@/lib/idea-tree";
+import { buildIdeas, type Decisions, treeForPrompt } from "@/lib/idea-tree";
 
 export const maxDuration = 60;
 
@@ -46,9 +46,12 @@ export async function POST(req: Request) {
       { status: 429 },
     );
 
-  const { messages }: { messages: ChatMessage[] } = await req.json();
-  const nodes = buildTree(messages);
-  const fullSystem = `${system}\n\n## IDEAS SO FAR IN THIS CONVERSATION (use these ids as ideas[].parent; the next idea you add gets id N${nodes.length + 1})\n${treeForPrompt(nodes)}`;
+  const {
+    messages,
+    decisions = {},
+  }: { messages: ChatMessage[]; decisions?: Decisions } = await req.json();
+  const nodes = buildIdeas(messages, decisions);
+  const fullSystem = `${system}\n\n## IDEAS PROPOSED SO FAR, with the user's decision (use these ids as ideas[].parent; the next idea you add gets id N${nodes.length + 1})\n${treeForPrompt(nodes)}`;
 
   const stream = createUIMessageStream<ChatMessage>({
     execute: async ({ writer }) => {

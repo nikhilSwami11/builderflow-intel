@@ -4,17 +4,15 @@ import { Lightbulb, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { IdeaNode } from "@/lib/idea-tree";
 
-const NODE_W = 100;
-const NODE_H = 44;
-const COL = 120; // distance between levels
-const ROW = 58; // distance between siblings
-const PAD = 12;
-const ROOT_D = 40; // diameter of the "Chat" root circle
+const DOT = 16;
+const COL = 38; // distance between levels
+const ROW = 34; // distance between siblings
+const PAD = 14;
 
 type Placed = IdeaNode & { x: number; y: number; depth: number };
 
-/** Tidy left-to-right layout: depth sets x; each leaf takes the next row and a parent sits at the
- *  middle of its children. The conversation itself is the root on the left. */
+/** Left-to-right tree: depth sets x; each leaf takes the next row and a parent sits at the middle
+ *  of its children. Roots hang off a small ring that stands for the conversation. */
 function layout(nodes: IdeaNode[]): {
   placed: Placed[];
   width: number;
@@ -27,17 +25,15 @@ function layout(nodes: IdeaNode[]): {
     const cs = kids(n.id);
     const ys = cs.length ? cs.map((c) => walk(c, depth + 1)) : [row++ * ROW];
     const y = (Math.min(...ys) + Math.max(...ys)) / 2;
-    placed.push({ ...n, x: ROOT_D + 14 + depth * COL, y, depth });
+    placed.push({ ...n, x: (depth + 1) * COL, y, depth });
     return y;
   };
   kids(null).forEach((n) => walk(n, 0));
+  const depth = Math.max(0, ...placed.map((p) => p.depth));
   return {
     placed,
-    width:
-      (Math.max(0, ...placed.map((p) => p.depth)) + 2) * COL -
-      (COL - NODE_W) +
-      PAD * 2,
-    height: Math.max(row, 1) * ROW + PAD * 2,
+    width: (depth + 1) * COL + DOT + PAD * 2,
+    height: Math.max(row, 1) * ROW + PAD * 2 - (ROW - DOT),
   };
 }
 
@@ -59,36 +55,35 @@ export function IdeaTree({
     y: number;
   } | null>(null);
   const byId = new Map(placed.map((p) => [p.id, p]));
-  const rootY = placed.length
-    ? placed.filter((p) => p.parent === null).reduce((a, p) => a + p.y, 0) /
-      placed.filter((p) => p.parent === null).length
+  const roots = placed.filter((p) => p.parent === null);
+  const rootY = roots.length
+    ? roots.reduce((a, p) => a + p.y, 0) / roots.length
     : 0;
+  const c = DOT / 2;
   const edge = (x1: number, y1: number, x2: number, y2: number) => {
     const mx = (x1 + x2) / 2;
-    return `M${x1 + PAD},${y1 + PAD} C${mx + PAD},${y1 + PAD} ${mx + PAD},${y2 + PAD} ${x2 + PAD},${y2 + PAD}`;
+    return `M${x1 + PAD + c},${y1 + PAD + c} C${mx + PAD + c},${y1 + PAD + c} ${mx + PAD + c},${y2 + PAD + c} ${x2 + PAD + c},${y2 + PAD + c}`;
   };
 
   return (
     <aside
       aria-label="Idea tree"
-      className="absolute inset-y-0 right-0 z-20 flex w-[min(28rem,100%)] flex-col border-l border-rule bg-paper shadow-xl"
+      className="absolute inset-y-0 right-0 z-20 flex w-[min(12rem,100%)] flex-col border-l border-rule bg-paper shadow-xl lg:static lg:shrink-0 lg:shadow-none"
     >
-      <div className="flex items-center gap-2 border-b border-rule px-4 py-3 text-[13px] font-medium">
-        <Lightbulb size={15} aria-hidden /> Idea tree
+      <div className="flex items-center gap-1.5 border-b border-rule px-3 py-2.5 text-[12px] font-medium">
+        <Lightbulb size={13} aria-hidden /> Ideas
         {nodes.length > 0 && (
-          <span className="tnum text-[12px] font-normal text-text-2">
-            {nodes.length}
-          </span>
+          <span className="tnum font-normal text-text-2">{nodes.length}</span>
         )}
         <button
           onClick={onClose}
           aria-label="Close idea tree"
-          className="ml-auto flex size-6 items-center justify-center rounded-md text-text-2 transition-colors duration-150 hover:bg-accent-wash hover:text-text"
+          className="ml-auto flex size-5 items-center justify-center rounded text-text-2 transition-colors duration-150 hover:bg-accent-wash hover:text-text"
         >
-          <X size={15} aria-hidden />
+          <X size={13} aria-hidden />
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-3">
+      <div className="min-h-0 flex-1 overflow-auto p-2">
         {nodes.length ? (
           <div className="relative" style={{ width, height }}>
             <svg
@@ -99,14 +94,12 @@ export function IdeaTree({
             >
               {placed.map((p) => {
                 const from = p.parent ? byId.get(p.parent) : null;
-                const [x1, y1] = from
-                  ? [from.x + NODE_W, from.y + NODE_H / 2]
-                  : [ROOT_D, rootY + NODE_H / 2];
+                const [x1, y1] = from ? [from.x, from.y] : [0, rootY];
                 const lit = hover?.node.id === p.id || focus === p.id;
                 return (
                   <path
                     key={p.id}
-                    d={edge(x1, y1, p.x, p.y + NODE_H / 2)}
+                    d={edge(x1, y1, p.x, p.y)}
                     fill="none"
                     stroke={lit ? "var(--ink)" : "var(--rule-strong)"}
                     strokeWidth={lit ? 2 : 1.5}
@@ -116,60 +109,40 @@ export function IdeaTree({
               })}
             </svg>
             <span
-              className="absolute flex items-center justify-center rounded-full bg-ink text-[10px] font-medium text-white"
-              style={{
-                left: PAD,
-                top: rootY + PAD,
-                width: ROOT_D,
-                height: ROOT_D,
-              }}
+              aria-hidden
               title="This conversation"
-            >
-              Chat
-            </span>
+              className="absolute rounded-full border-2 border-ink bg-sheet"
+              style={{ left: PAD, top: rootY + PAD, width: DOT, height: DOT }}
+            />
             {placed.map((p) => {
               const on = focus === p.id || hover?.node.id === p.id;
+              const show = (e: { currentTarget: HTMLElement }) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setHover({ node: p, x: r.left, y: r.top });
+              };
               return (
                 <button
                   key={p.id}
+                  aria-label={p.title}
                   onClick={() => onPick(p)}
-                  onMouseEnter={(e) => {
-                    const r = e.currentTarget.getBoundingClientRect();
-                    setHover({ node: p, x: r.left, y: r.top });
-                  }}
+                  onMouseEnter={show}
+                  onFocus={show}
                   onMouseLeave={() => setHover(null)}
-                  onFocus={(e) => {
-                    const r = e.currentTarget.getBoundingClientRect();
-                    setHover({ node: p, x: r.left, y: r.top });
-                  }}
                   onBlur={() => setHover(null)}
-                  className={`absolute flex items-center gap-1.5 rounded-lg border px-2 text-left text-[11.5px] leading-tight shadow-sm transition-all duration-150 ${
-                    on
-                      ? "z-10 scale-105 border-ink bg-sheet"
-                      : "border-rule-strong bg-sheet hover:border-ink"
-                  } ${focus === p.id ? "ring-2 ring-[#f0d68a]" : ""}`}
+                  className={`absolute rounded-full border-2 transition-all duration-150 ${on ? "scale-125 border-ink bg-[#fde68a]" : "border-[#c98a00] bg-[#fde68a] hover:scale-125"} ${focus === p.id ? "ring-2 ring-[#f0d68a]" : ""}`}
                   style={{
                     left: p.x + PAD,
                     top: p.y + PAD,
-                    width: NODE_W,
-                    height: NODE_H,
+                    width: DOT,
+                    height: DOT,
                   }}
-                >
-                  <Lightbulb
-                    size={12}
-                    aria-hidden
-                    className="shrink-0 text-[#c98a00]"
-                    fill="#fde68a"
-                  />
-                  <span className="line-clamp-2">{p.title}</span>
-                </button>
+                />
               );
             })}
           </div>
         ) : (
-          <p className="px-1 py-2 text-[12px] leading-snug text-text-2">
-            Ideas from this conversation appear here as a graph. Building on an
-            idea adds a branch; hover a node for the reasoning.
+          <p className="px-1 py-2 text-[11.5px] leading-snug text-text-2">
+            Ideas you accept appear here. Hover a dot for details.
           </p>
         )}
       </div>
@@ -177,10 +150,10 @@ export function IdeaTree({
       {hover && (
         <div
           role="tooltip"
-          className="pointer-events-none fixed z-50 w-60 rounded-lg border border-rule-strong bg-sheet p-3 shadow-lg"
+          className="pointer-events-none fixed z-50 w-56 rounded-lg border border-rule-strong bg-sheet p-3 shadow-lg"
           style={{
-            left: Math.min(Math.max(8, hover.x), window.innerWidth - 256),
-            top: hover.y + NODE_H + 8,
+            left: Math.max(8, hover.x - 232),
+            top: Math.max(8, hover.y - 8),
           }}
         >
           <p className="text-[13px] font-semibold">{hover.node.title}</p>

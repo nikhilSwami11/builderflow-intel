@@ -9,10 +9,16 @@ import { Cites } from "@/components/cite";
 import { Prose } from "@/components/prose";
 import { IdeaTree } from "@/components/idea-tree";
 import type { ChatMessage } from "@/lib/chat-types";
-import { buildTree } from "@/lib/idea-tree";
+import {
+  acceptedTree,
+  buildIdeas,
+  type Decisions,
+  type IdeaNode,
+} from "@/lib/idea-tree";
 
 const SLOTS = [1, 2, 3];
 const storeKey = (slot: number) => `bf-chat-v3-${slot}`;
+const ideasKey = (slot: number) => `bf-chat-v3-ideas-${slot}`;
 
 const STARTERS = [
   "What should Builderflow fix first in Work Orders?",
@@ -43,6 +49,7 @@ function ChatPane({
       transport: new DefaultChatTransport({ api: "/api/chat" }),
     });
   const restored = useRef(false);
+  const [decisions, setDecisions] = useState<Decisions>({});
   const [input, setInput] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
   const seeded = useRef(false);
@@ -58,8 +65,10 @@ function ChatPane({
     try {
       const saved = localStorage.getItem(STORE_KEY);
       if (saved) setMessages(JSON.parse(saved));
+      const ideas = localStorage.getItem(ideasKey(slot));
+      if (ideas) setDecisions(JSON.parse(ideas));
     } catch {}
-  }, [seedQuestion, setMessages]);
+  }, [seedQuestion, setMessages, slot]);
 
   useEffect(() => {
     if (!restored.current || status !== "ready") return;
@@ -78,22 +87,39 @@ function ChatPane({
     });
   }, [messages, status]);
 
-  function send(question: string) {
+  function send(question: string, withDecisions: Decisions = decisions) {
     const q = question.trim();
     if (!q || busy) return;
     setInput("");
-    void sendMessage({ text: q });
+    void sendMessage({ text: q }, { body: { decisions: withDecisions } });
+  }
+
+  // The assistant proposes ideas; the user decides. "Go ahead" adds the idea to the tree and tells
+  // the assistant to carry on with it; "Not this" just drops the proposal.
+  function decide(node: IdeaNode, choice: "accepted" | "dismissed") {
+    if (busy) return;
+    const next = { ...decisions, [node.id]: choice };
+    setDecisions(next);
+    try {
+      localStorage.setItem(ideasKey(slot), JSON.stringify(next));
+    } catch {}
+    if (choice === "accepted") {
+      setTreeOpen(true);
+      setFocusNode(node.id);
+      send(`Yes, go ahead with "${node.title}".`, next);
+    }
   }
 
   // A "Discuss" link arrives as /chat?q=...: ask it once.
   useEffect(() => {
     if (seedQuestion && !seeded.current) {
       seeded.current = true;
-      void sendMessage({ text: seedQuestion });
+      void sendMessage({ text: seedQuestion }, { body: { decisions: {} } });
     }
   }, [seedQuestion, sendMessage]);
 
-  const tree = buildTree(messages);
+  const ideas = buildIdeas(messages, decisions);
+  const tree = acceptedTree(ideas);
   const [focus, setFocusNode] = useState<string | null>(null);
   const [treeOpen, setTreeOpen] = useState(false);
   const setFocus = (id: string) => {
@@ -101,15 +127,13 @@ function ChatPane({
     setTreeOpen(true);
   };
   const markersOf = (m: ChatMessage) =>
-    tree
-      .filter((n) => n.messageId === m.id && n.anchor)
+    ideas
+      .filter(
+        (n) => n.messageId === m.id && n.anchor && n.status !== "dismissed",
+      )
       .map((n) => ({ id: n.id, anchor: n.anchor!, title: n.title }));
-  const unplaced = (m: ChatMessage) =>
-    tree.filter(
-      (n) =>
-        n.messageId === m.id &&
-        !(n.anchor && textOf(m).toLowerCase().includes(n.anchor.toLowerCase())),
-    );
+  const proposalsOf = (m: ChatMessage) =>
+    ideas.filter((n) => n.messageId === m.id);
   const jumpTo = (id: string) =>
     document
       .getElementById(`msg-${id}`)
@@ -121,7 +145,26 @@ function ChatPane({
 
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-xl border border-rule bg-sheet">
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        <button
+          onClick={() => setTreeOpen((o) => !o)}
+          aria-expanded={treeOpen}
+          className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md border border-rule-strong bg-sheet px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150 hover:border-accent"
+        >
+          <Lightbulb
+            size={13}
+            aria-hidden
+            className="text-[#c98a00]"
+            fill="#fde68a"
+          />
+          Ideas
+          {tree.length > 0 && (
+            <span className="tnum rounded bg-accent-wash px-1.5 text-text-2">
+              {tree.length}
+            </span>
+          )}
+        </button>
+
         <div
           ref={scroller}
           className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pt-14 pb-5"
@@ -165,26 +208,55 @@ function ChatPane({
                   markers={markersOf(m)}
                   onMarker={setFocus}
                 />
-                {unplaced(m).map((n) => (
-                  <button
+                {proposalsOf(m).map((n) => (
+                  <div
                     key={n.id}
-                    onClick={() => setFocus(n.id)}
-                    className="mt-3 flex w-full gap-2.5 rounded-lg border border-amber/40 bg-amber-wash px-3.5 py-3 text-left"
+                    className={`mt-3 flex gap-2.5 rounded-lg border px-3.5 py-3 ${n.status === "dismissed" ? "border-rule bg-paper opacity-60" : "border-amber/40 bg-amber-wash"}`}
                   >
                     <Lightbulb
                       size={16}
                       aria-hidden
                       className="mt-0.5 shrink-0 text-amber"
                     />
-                    <span>
-                      <span className="block text-[13px] font-semibold">
-                        {n.title}
-                      </span>
-                      <span className="mt-0.5 block text-[13px] text-text-2">
-                        {n.why}
-                      </span>
-                    </span>
-                  </button>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold">{n.title}</p>
+                      <p className="mt-0.5 text-[13px] text-text-2">{n.why}</p>
+                      {n.status === "pending" && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                          <span className="text-[12px] text-text-2">
+                            Does this direction look good?
+                          </span>
+                          <button
+                            onClick={() => decide(n, "accepted")}
+                            disabled={busy}
+                            className="rounded-md bg-ink px-2.5 py-1 text-[12px] font-medium text-white transition-colors duration-150 hover:bg-[#333] disabled:opacity-40"
+                          >
+                            Yes, go ahead
+                          </button>
+                          <button
+                            onClick={() => decide(n, "dismissed")}
+                            disabled={busy}
+                            className="rounded-md border border-rule-strong bg-sheet px-2.5 py-1 text-[12px] text-text-2 transition-colors duration-150 hover:border-accent hover:text-text disabled:opacity-40"
+                          >
+                            Not this
+                          </button>
+                        </div>
+                      )}
+                      {n.status === "accepted" && (
+                        <button
+                          onClick={() => setFocus(n.id)}
+                          className="mt-1.5 text-[11.5px] text-text-2 underline underline-offset-2 hover:text-text"
+                        >
+                          In your idea tree
+                        </button>
+                      )}
+                      {n.status === "dismissed" && (
+                        <p className="mt-1 text-[11.5px] text-text-2">
+                          Skipped
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 ))}
                 {sourcesOf(m).length > 0 && (
                   <div className="mt-3">
@@ -250,24 +322,6 @@ function ChatPane({
           </button>
         </form>
       </div>
-      <button
-        onClick={() => setTreeOpen((o) => !o)}
-        aria-expanded={treeOpen}
-        className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md border border-rule-strong bg-sheet px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150 hover:border-accent"
-      >
-        <Lightbulb
-          size={13}
-          aria-hidden
-          className="text-[#c98a00]"
-          fill="#fde68a"
-        />
-        Ideas
-        {tree.length > 0 && (
-          <span className="tnum rounded bg-accent-wash px-1.5 text-text-2">
-            {tree.length}
-          </span>
-        )}
-      </button>
       {treeOpen && (
         <IdeaTree
           onClose={() => setTreeOpen(false)}
@@ -300,6 +354,7 @@ const TABS_KEY = "bf-chat-tabs";
 const clearSlot = (slot: number) => {
   try {
     localStorage.removeItem(storeKey(slot));
+    localStorage.removeItem(ideasKey(slot));
   } catch {}
 };
 
