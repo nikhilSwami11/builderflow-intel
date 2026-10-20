@@ -28,8 +28,14 @@ function score(gap: GapRow, rec: Recommendation): number {
 export function getOpportunities(): Opportunity[] {
   const gaps = bundle.gapMatrix
     .filter((g) => g.builderflowHas !== "yes")
+    // real gaps (the guide says partial/absent) before features the guide does not cover; then
     // table-stakes first, then the features more competitors already ship
-    .sort((a, b) => (a.tier === "table_stakes" ? 0 : 1) - (b.tier === "table_stakes" ? 0 : 1) || b.competitors.length - a.competitors.length);
+    .sort(
+      (a, b) =>
+        (a.builderflowHas === "unverified" ? 1 : 0) - (b.builderflowHas === "unverified" ? 1 : 0) ||
+        (a.tier === "table_stakes" ? 0 : 1) - (b.tier === "table_stakes" ? 0 : 1) ||
+        b.competitors.length - a.competitors.length,
+    );
   const used = new Set<string>();
 
   return gaps.map((gap) => {
@@ -42,12 +48,10 @@ export function getOpportunities(): Opportunity[] {
     const name = shortName(gap.feature);
     const status =
       gap.builderflowHas === "partial"
-        ? "only partial (pilot or rolling out)"
-        : gap.builderflowHas === "claimed"
-          ? "claimed on the website but not confirmed by the guide"
-          : gap.builderflowHas === "no"
-            ? "not found in our data"
-            : "unverified";
+        ? "only partial (the guide says it is coming soon or limited)"
+        : gap.builderflowHas === "no"
+          ? "not found in our data"
+          : "not covered in Builderflow's user guide (the website or screenshots show it)";
     const who = gap.competitors.length ? `${gap.competitors.join(", ")} ship it` : "no competitor in our data ships it";
     return {
       gap,

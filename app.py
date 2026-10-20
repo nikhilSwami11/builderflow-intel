@@ -32,7 +32,6 @@ HAS_LABEL = {
     "yes": "✅ Have it",
     "partial": "🟡 Partial / rolling out",
     "no": "❌ Don't have it",
-    "claimed": "🔵 Claimed on website",
     "unverified": "⚪ Unverified",
 }
 THEME_LABEL = {
@@ -113,7 +112,7 @@ def render_citations(citations: list[dict], key_prefix: str) -> None:
 def tab_overview(analysis: dict, growth: dict, market: dict):
     st.subheader("Where Builderflow stands, in one screen")
     gap_matrix = analysis["gap_matrix"]
-    risks = [g for g in gap_matrix if g["tier"] == "table_stakes" and g["builderflow_has"] in ("no", "partial", "claimed")]
+    risks = [g for g in gap_matrix if g["tier"] == "table_stakes" and g["builderflow_has"] in ("no", "partial")]
     strengths = [g for g in gap_matrix if g["tier"] == "differentiator" and g["builderflow_has"] == "yes"]
     by_cat = defaultdict(list)
     for r in growth["recommendations"]:
@@ -155,7 +154,7 @@ def tab_gap_matrix(analysis: dict):
         rows = [g for g in gap_matrix if g["tier"] == tier]
         if not rows:
             continue
-        risk_first = sorted(rows, key=lambda g: {"no": 0, "partial": 1, "claimed": 2, "unverified": 3, "yes": 4}[g["builderflow_has"]])
+        risk_first = sorted(rows, key=lambda g: {"no": 0, "partial": 1, "unverified": 2, "yes": 3}[g["builderflow_has"]])
         st.markdown(f"### {TIER_LABEL[tier]} ({len(rows)})")
         for g in risk_first:
             with st.expander(f"{HAS_LABEL[g['builderflow_has']]} — {g['feature']}"):

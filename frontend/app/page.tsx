@@ -9,7 +9,7 @@ import { bundle, HAS_LABEL, THEME_LABEL, TIER_LABEL, TIER_ORDER } from "@/lib/da
 import { getOpportunities, toCard } from "@/lib/opportunities";
 import type { Has } from "@/lib/types";
 
-const HAS_ORDER: Has[] = ["yes", "partial", "claimed", "no", "unverified"];
+const HAS_ORDER: Has[] = ["yes", "partial", "no", "unverified"];
 const COMPANIES = ["CompanyCam", "JobNimbus", "Buildertrend"];
 
 export default function Overview() {
@@ -57,7 +57,7 @@ export default function Overview() {
         <Section title="Feature coverage">
           <BarStrip rows={tierRows} max={tierMax} />
           <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-text-2">
-            {HAS_ORDER.map((h) => (
+            {HAS_ORDER.filter((h) => gapMatrix.some((g) => g.builderflowHas === h)).map((h) => (
               <li key={h} className="flex items-center gap-1.5">
                 <span className={`h-2.5 w-2.5 rounded-sm ${HAS_TONE[h].bar}`} />
                 {HAS_LABEL[h]}

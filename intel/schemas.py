@@ -84,7 +84,7 @@ class MarketInsights(BaseModel):
 class GapMatrixEntry(BaseModel):
     feature: str
     tier: Literal["table_stakes", "differentiator", "emerging"]
-    builderflow_has: Literal["yes", "no", "partial", "claimed", "unverified"]
+    builderflow_has: Literal["yes", "no", "partial", "unverified"]
     competitors_with_it: list[str] = Field(default_factory=list)
     citations: list[Citation] = Field(default_factory=list)
 

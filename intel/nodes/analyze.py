@@ -8,7 +8,8 @@ are weak signal on their own):
 1. Gap matrix -- one cached mini-model call synthesizes one canonical feature list across
    competitors (dedupes synonyms), tiers each row (table_stakes / differentiator / emerging,
    the last one tied to market trends, not invented), and marks Builderflow's status as
-   yes/partial/claimed/unverified/no grounded only in app_summary + screen digest. One extra row (the
+   yes/partial/unverified/no judged from the full user guide (source of truth; screenshots only
+   illustrate it, website/summary never override it). One extra row (the
    flat-vs-per-seat pricing model) is appended deterministically in Python -- see
    _pricing_model_gap_row below -- since it's a hand-verified fact, not something worth an
    LLM guessing at.
@@ -48,6 +49,7 @@ from intel.schemas import (
 )
 
 APP_SUMMARY_PATH = Path("data/app_summary.md")
+GUIDE_PATH = Path("data/builderflow_guide.md")
 BUILDERFLOW_PRICING_PATH = Path("data/builderflow_site/pricing.md")
 BUILDERFLOW_HOMEPAGE_PATH = Path("data/builderflow_site/homepage.md")
 MANUAL_PRICING_PATH = Path("data/manual/competitor_pricing.yaml")
@@ -107,25 +109,35 @@ Synthesize ONE canonical feature list across all three competitors' raw feature 
 same row). Weight the list toward CRM / lead-management / scheduling / estimating
 capabilities, not only inspection/photo-documentation features.
 
-For builderflow_has, use ONLY the Builderflow app_summary and screen digest below, and decide
-by the strongest source (guide and portal note outrank the website; the website outranks screenshots):
-- "yes": the guide describes it as working functionality, and nothing in the app_summary flags it
-  as pilot, coming soon or rolling out.
-- "partial": the guide, portal note or app_summary says it is pilot-only, coming soon, rolling
-  out or limited.
-- "claimed": only Builderflow's website marketing (module list, pricing table) mentions it; the
-  guide does not describe it and nothing confirms it is available today.
-- "unverified": screenshots show UI for it, but neither the guide nor the website covers it
-  (or the sources conflict in a way you cannot resolve).
-- "no": clearly absent from every source.
-The screenshots were captured from a brand-new account with no data, so an empty state is NOT
-evidence that a feature is partial or limited, and a feature not appearing in the screenshots is
-NOT evidence that it is absent. Never guess.
+For builderflow_has, the USER GUIDE below is the source of truth. The screenshots only
+illustrate what the guide explains; the website and the app_summary are secondary and never
+override the guide:
+- "yes": the guide explains the feature as something users do today (a how-to, steps, or a
+  described screen). A screenshot of it that is empty or shows only an "add" button still counts
+  as a complete feature: the screenshots came from a brand-new account with no data.
+- "partial": the guide itself says the feature is coming soon, pilot-only, limited or cannot be
+  used yet.
+- "unverified": the guide does not cover the feature; only the website and/or screenshots show it.
+- "no": no source at all (guide, website pages, screenshots) mentions it. This is rare: a feature
+  the website mentions but the guide does not is "unverified", never "no".
+"yes" needs the guide to explain THAT exact capability. If the guide covers only a neighbouring
+or smaller slice (for example payment schedules on a contract when the row is online card
+payments and invoicing), the guide does not explain this capability: mark it "unverified".
+Never mark a feature "partial" or "no" because a screen is empty or because a feature does not
+appear in the screenshots. Never guess.
+
+Always include a row for each of Builderflow's own modules, even if no competitor has an
+equivalent: lead intake automation, estimating, work orders / field service management, finance
+(bills, expenses, project P&L, accounting sync), the technician mobile app, and Claim Scope
+inspections and reports. Use the guide to set each one's status (for work orders the guide itself
+says they are coming soon, so "partial").
 
 citations: for each row, cite the competitor source (use their website homepage as ref if no
-more specific URL is available) and, for Builderflow's status, cite a builderflow_site/*.md
-file, or -- when the evidence is a screenshot -- copy the exact "(path: ...)" value from the
-screen digest below verbatim as ref (source="screenshot"). Never paraphrase or invent a ref.
+more specific URL is available). For Builderflow's status, prefer the guide: cite it with
+source="guide" and ref = one section heading copied EXACTLY from the GUIDE HEADINGS list below.
+Otherwise cite a builderflow_site/*.md file, or -- for a screenshot -- copy the exact
+"(path: ...)" value from the screen digest verbatim as ref (source="screenshot"). Never
+paraphrase or invent a ref.
 
 === COMPETITOR FEATURES ===
 {competitor_features}
@@ -133,7 +145,13 @@ screen digest below verbatim as ref (source="screenshot"). Never paraphrase or i
 === MARKET TRENDS (for "emerging" tier only) ===
 {trends}
 
-=== BUILDERFLOW APP SUMMARY ===
+=== BUILDERFLOW USER GUIDE (source of truth) ===
+{guide}
+
+=== GUIDE HEADINGS (cite these exactly) ===
+{guide_headings}
+
+=== BUILDERFLOW APP SUMMARY (secondary) ===
 {app_summary}
 
 === BUILDERFLOW SCREEN DIGEST (module: screen - purpose) ===
@@ -194,10 +212,31 @@ def _pricing_model_gap_row(profiles: dict, manual_pricing: dict) -> GapMatrixEnt
     )
 
 
+def _guide_headings(guide: str) -> list[str]:
+    """Section titles (# to ###) so a guide citation can name a real section, not a paraphrase."""
+    return [m.group(2).strip() for m in re.finditer(r"^(#{1,3})\s+(.+)$", guide, re.MULTILINE)]
+
+
+def _snap_guide_ref(ref: str, headings: list[str]) -> str:
+    """Models sometimes trim or reword a heading; snap it back to the real one when it is clearly
+    the same (case-insensitive containment), otherwise leave it alone."""
+    if ref in headings:
+        return ref
+    low = ref.lower().strip()
+    for h in headings:
+        if low and (low in h.lower() or h.lower() in low):
+            return h
+    return ref
+
+
 def build_gap_matrix(profiles: dict, trends: list, app_summary: str, screen_digest: str) -> GapMatrixResult:
+    guide = GUIDE_PATH.read_text()
+    headings = _guide_headings(guide)
     prompt = GAP_MATRIX_PROMPT.format(
         competitor_features=_format_profiles(profiles),
         trends="\n".join(f"- {t.description} ({t.citation.ref})" for t in trends),
+        guide=guide,
+        guide_headings="\n".join(headings),
         app_summary=app_summary,
         screen_digest=screen_digest,
     )
@@ -218,6 +257,8 @@ def build_gap_matrix(profiles: dict, trends: list, app_summary: str, screen_dige
         for c in entry.citations:
             if c.source == "screenshot":
                 c.ref = _clean_screenshot_ref(c.ref)
+            elif c.source == "guide":
+                c.ref = _snap_guide_ref(c.ref, headings)
     return result
 
 

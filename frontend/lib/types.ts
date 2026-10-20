@@ -13,7 +13,7 @@ export type Citation = {
 };
 
 export type Tier = "table_stakes" | "differentiator" | "emerging";
-export type Has = "yes" | "partial" | "claimed" | "no" | "unverified";
+export type Has = "yes" | "partial" | "no" | "unverified";
 
 export type GapRow = {
   id: string;

@@ -17,19 +17,23 @@ OUT_PATH = Path("data/app_summary.md")
 
 PROMPT_TEMPLATE = """Write a factual summary of Builderflow, a lead management and CRM web
 app for remodelers/contractors, for use as a system prompt grounding an AI growth-advisor
-tool. HARD LIMIT: 1500 tokens (~1100 words) -- stop well short of that, do not pad to fill it.
+tool. HARD LIMIT: 2200 tokens (~1600 words) -- stop well short of that, do not pad to fill it.
 Base it ONLY on the guide, website, and screenshot analyses below -- do not invent features
 or modules not evidenced in this material.
 
-Evidence rules (important):
-- The screenshots were captured from a brand-new account with no data, so empty states ("No
-  projects yet", empty lists) are normal and say NOTHING about whether a feature is live, partial
-  or in pilot. Never infer availability from an empty screen, and never treat a feature that
-  is missing from the screenshots as missing from the product.
-- For what is actually available today, trust the guide and the portal note above the website.
-  Where the guide or portal says a module is "coming soon", "rolling out" or pilot-only, record it
-  as NOT generally available. Where only the website's marketing claims a module and the guide
-  does not describe it, record it as "claimed on the website, not confirmed by the guide".
+Source of truth: the USER GUIDE below decides what Builderflow offers and how it works. The
+screenshots are only references that illustrate guide features. They were captured from a brand-new
+account with no data, so an empty screen or an "add" button is normal and says NOTHING about whether
+a feature is complete -- if the guide explains a feature, it is a working feature. The website and any
+portal note are marketing/status text: report them, flag where they disagree with the guide, but never
+let them override the guide. Mark a feature as not yet available ONLY if the guide itself says so
+("coming soon", pilot-only, cannot be created yet).
+
+Include a section "Guide coverage": a compact list of every module/feature the guide explains
+(with the guide chapter or step), a list of what the guide itself says is coming soon or limited,
+and a list of features the website or screenshots show that the guide does NOT cover.
+
+Output only the summary itself: no preamble, and no closing offers or questions to the reader.
 
 Cover, briefly: what Builderflow is, its modules/features (what's live vs what's rolling out
 next, per the portal vs the guide vs the website -- flag any mismatch rather than picking one),
@@ -37,7 +41,7 @@ who it's for, and its core workflow as a compact numbered list (not one paragrap
 Be dense and specific, not marketing copy. Cut anything not load-bearing for an LLM reasoning
 about gaps and positioning -- no security/compliance boilerplate, no restated role lists.
 
-=== GUIDE (data/builderflow_guide.md, first 6000 chars) ===
+=== USER GUIDE (data/builderflow_guide.md, complete) ===
 {guide}
 
 === WEBSITE ===
@@ -69,7 +73,7 @@ def _screen_digest() -> str:
 
 
 def build() -> str:
-    guide = GUIDE_PATH.read_text()[:6000]
+    guide = GUIDE_PATH.read_text()
     website = _website_text()
     screens = _screen_digest()
     prompt = PROMPT_TEMPLATE.format(guide=guide, website=website, screens=screens)

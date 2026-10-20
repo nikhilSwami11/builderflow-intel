@@ -1,11 +1,10 @@
-import { Check, CircleHelp, Globe, Minus, X } from "lucide-react";
+import { Check, CircleHelp, Minus, X } from "lucide-react";
 import { HAS_LABEL } from "@/lib/data";
 import type { Has } from "@/lib/types";
 
 export const HAS_TONE: Record<Has, { chip: string; bar: string; icon: typeof Check }> = {
   yes: { chip: "bg-green-wash text-green border-green/30", bar: "bg-green", icon: Check },
   partial: { chip: "bg-amber-wash text-amber border-amber/30", bar: "bg-[#d9a21b]", icon: Minus },
-  claimed: { chip: "bg-[#eaf0fb] text-[#2a4f9e] border-[#2a4f9e]/30", bar: "bg-[#5b86d6]", icon: Globe },
   no: { chip: "bg-red-wash text-red border-red/30", bar: "bg-red", icon: X },
   unverified: { chip: "bg-stone-wash text-stone border-stone/30", bar: "bg-[#9aa8b8]", icon: CircleHelp },
 };

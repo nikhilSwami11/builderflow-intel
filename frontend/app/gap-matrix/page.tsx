@@ -6,8 +6,8 @@ import { bundle, HAS_LABEL, TIER_LABEL, TIER_ORDER } from "@/lib/data";
 import { getOpportunities, shortName, toCard } from "@/lib/opportunities";
 import type { Has } from "@/lib/types";
 
-const RISK: Record<Has, number> = { no: 0, partial: 1, claimed: 2, unverified: 3, yes: 4 };
-const HAS_ORDER: Has[] = ["yes", "partial", "claimed", "no", "unverified"];
+const RISK: Record<Has, number> = { no: 0, partial: 1, unverified: 2, yes: 3 };
+const HAS_ORDER: Has[] = ["yes", "partial", "no", "unverified"];
 const COMPANIES = ["CompanyCam", "JobNimbus", "Buildertrend"];
 
 export default function GapMatrix() {
@@ -31,7 +31,7 @@ export default function GapMatrix() {
             All {rows.length} features
           </h2>
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-text-2" aria-label="Legend">
-            {HAS_ORDER.map((h) => (
+            {HAS_ORDER.filter((h) => rows.some((g) => g.builderflowHas === h)).map((h) => (
               <li key={h} className="flex items-center gap-1.5">
                 <span className={`h-2.5 w-2.5 rounded-sm ${HAS_TONE[h].bar}`} />
                 {HAS_LABEL[h]}
