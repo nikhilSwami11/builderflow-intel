@@ -58,7 +58,7 @@ export default function Advisor() {
   const count = (l: Strength) => cards.filter((c) => c.strength === l).length;
   const BAR: Record<Strength, string> = {
     strong: "bg-green",
-    promising: "bg-amber",
+    promising: "bg-[#f0a500]",
     early: "bg-stone",
   };
 

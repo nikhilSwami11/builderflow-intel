@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { IdeaCard, type IdeaCardData } from "@/components/idea-card";
+import { strengthSelected } from "@/components/strength";
 import { STRENGTH_LABEL, type Strength } from "@/lib/strength";
 
 export type BoardCard = IdeaCardData & { column: string };
@@ -44,7 +45,9 @@ export function AdvisorBoard({
             aria-pressed={level === k}
             className={`rounded-full border px-2.5 py-1 text-[12px] transition-colors duration-150 ${
               level === k
-                ? "border-accent bg-accent text-white"
+                ? k === "all"
+                  ? "border-accent bg-accent text-white"
+                  : strengthSelected[k]
                 : "border-rule-strong bg-sheet text-text-2 hover:text-text"
             }`}
           >

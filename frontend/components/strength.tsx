@@ -11,9 +11,9 @@ const TONE: Record<
     filled: 3,
   },
   promising: {
-    bar: "bg-amber",
-    text: "text-amber",
-    wash: "bg-amber-wash",
+    bar: "bg-[#f0a500]",
+    text: "text-[#8a5a00]",
+    wash: "bg-[#ffefb8]",
     filled: 2,
   },
   early: {
@@ -22,6 +22,12 @@ const TONE: Record<
     wash: "bg-stone-wash",
     filled: 1,
   },
+};
+
+export const strengthSelected: Record<Strength, string> = {
+  strong: "border-green bg-green text-white",
+  promising: "border-[#f0a500] bg-[#f0a500] text-[#3d2a00]",
+  early: "border-stone bg-stone text-white",
 };
 
 export const strengthEdge = (s: Strength) => TONE[s].bar;
