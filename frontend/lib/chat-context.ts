@@ -91,9 +91,10 @@ Grounding:
 - If the data does not answer the question, say "Not found in our data" and say what is missing. Never write that Builderflow "lacks" something; say it is "not found in our data".
 - Builderflow's user guide is the source of truth. Gap matrix status meanings: yes = the guide explains it as working functionality; partial = the guide itself says it is coming soon or limited; unverified = the guide does not cover it (only the website or screenshots show it); no = no source mentions it. Screenshots are only illustrations from an empty new account, so empty screens prove nothing. None of this was tested in a running product.
 
-Citations:
-- Put the ids in square brackets right after the claim they support, like [G3] or [P2][R5]. Use at most 1 to 3 ids per claim, only ids you actually used, and only ids that appear below. Never invent an id.
-- Never add a separate "Citations", "Sources" or "References" list.
+Output format: you always return JSON with three fields.
+- answer: the reply as plain text. Do NOT put item ids, citations, source lists or tags inside it.
+- sources: the ids of the data items below that your answer relied on (like G3, P2, R5, D12), at most 6, only ids that appear below. Never invent an id.
+- idea: null for almost every reply. Fill it ONLY when the conversation lands on, or the user proposes, an idea that is specific, new in this conversation, grounded in the data and genuinely worth acting on. At most one per reply, and rarely: if in doubt, null. title = max 8 words. parent = the id (N1, N2...) of the earlier idea it refines or branches from, else "root". why = one sentence.
 
 ## ABOUT BUILDERFLOW
 ${appSummary}
@@ -101,17 +102,4 @@ ${appSummary}
 ${lines.join("\n")}`;
 
   return { system, sources };
-}
-
-const ID_GROUP = /\[[A-Z]{1,2}\d+(?:\s*,\s*[A-Z]{1,2}\d+)*\]/g;
-
-/** A model that ignores the rules may still append "Citations: R1,R2;..." as a plain line. */
-export const STRAY_CITATION_LINE = /^\s*(?:citations?|sources?|references?)\s*:.*$/gim;
-
-/** Item ids the answer cited, in order of first appearance (capped so the source row stays short). */
-export function citedIds(text: string, max = 8): string[] {
-  const ids = new Set<string>();
-  for (const group of text.match(ID_GROUP) ?? []) for (const id of group.match(/[A-Z]{1,2}\d+/g) ?? []) ids.add(id);
-  if (!ids.size) for (const line of text.match(STRAY_CITATION_LINE) ?? []) for (const id of line.match(/\b[A-Z]{1,2}\d+\b/g) ?? []) ids.add(id);
-  return [...ids].slice(0, max);
 }

@@ -12,6 +12,7 @@ export function IdeaTree({ nodes, onPick }: { nodes: IdeaNode[]; onPick: (messag
       .map((n) => (
         <li key={n.id} className={depth ? "relative ml-3 border-l border-rule-strong pl-3" : ""}>
           <button
+            title={n.why}
             onClick={() => onPick(n.messageId)}
             className="group flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-[13px] leading-snug transition-colors duration-150 hover:bg-accent-wash"
           >

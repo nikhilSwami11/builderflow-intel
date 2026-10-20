@@ -2,16 +2,16 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { ArrowUp, Plus } from "lucide-react";
+import { ArrowUp, Lightbulb, Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Cites } from "@/components/cite";
 import { IdeaTree } from "@/components/idea-tree";
 import type { ChatMessage } from "@/lib/chat-types";
-import { buildTree, stripIdeaTags } from "@/lib/idea-tree";
+import { buildTree } from "@/lib/idea-tree";
 
 const SLOTS = [1, 2, 3];
-const storeKey = (slot: number) => `bf-chat-v2-${slot}`;
+const storeKey = (slot: number) => `bf-chat-v3-${slot}`;
 
 const STARTERS = [
   "What should Builderflow fix first in Work Orders?",
@@ -65,20 +65,10 @@ function Prose({ text }: { text: string }) {
   );
 }
 
-// The model cites items by id ([G3], [P2][R5]). The ids are internal: hide them (and any
-// half-streamed one at the end) and show the resolved sources under the answer instead.
-const ID_GROUP = /\s*\[[A-Z]{1,2}\d+(?:\s*,\s*[A-Z]{1,2}\d+)*\]/g;
-const PARTIAL_ID = /\s*\[[A-Z]{0,2}\d*(?:\s*,\s*[A-Z]{0,2}\d*)*$/;
-const STRAY_LINE = /^\s*(?:citations?|sources?|references?)\s*:.*$/gim;
-const clean = (t: string) =>
-  stripIdeaTags(t)
-    .replace(STRAY_LINE, "")
-    .replace(ID_GROUP, "")
-    .replace(PARTIAL_ID, "")
-    .trim();
-
 const textOf = (m: ChatMessage) =>
   m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+const ideaOf = (m: ChatMessage) =>
+  m.parts.flatMap((p) => (p.type === "data-idea" ? [p.data] : []))[0];
 const sourcesOf = (m: ChatMessage) =>
   m.parts.flatMap((p) => (p.type === "data-sources" ? p.data.citations : []));
 
@@ -219,7 +209,27 @@ function ChatPane({
                 id={`msg-${m.id}`}
                 className="max-w-[78ch] scroll-mt-4 text-[14px] leading-relaxed"
               >
-                <Prose text={clean(textOf(m))} />
+                <Prose text={textOf(m)} />
+                {ideaOf(m) && (
+                  <div className="mt-3 flex gap-2.5 rounded-lg border border-amber/40 bg-amber-wash px-3.5 py-3">
+                    <Lightbulb
+                      size={16}
+                      aria-hidden
+                      className="mt-0.5 shrink-0 text-amber"
+                    />
+                    <div>
+                      <p className="text-[13px] font-semibold">
+                        {ideaOf(m)!.title}
+                      </p>
+                      <p className="mt-0.5 text-[13px] text-text-2">
+                        {ideaOf(m)!.why}
+                      </p>
+                      <p className="mt-1 text-[11px] text-text-2">
+                        Added to the idea tree
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {sourcesOf(m).length > 0 && (
                   <div className="mt-3">
                     <Cites citations={sourcesOf(m)} />
