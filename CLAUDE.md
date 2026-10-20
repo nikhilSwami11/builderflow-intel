@@ -136,6 +136,7 @@ Chat = RAG over everything with citations and live search fallback.
 - Setup: `python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && playwright install chromium`
 - Ingest Builderflow: `python -m intel.ingest`
 - Run pipeline: `python -m intel.graph`
+- Refresh news: `python scripts/fetch_news.py`
 - UI (old): `streamlit run app.py`
 - UI (new): `python scripts/export_frontend.py && cd frontend && npm install && npm run dev`
 
@@ -150,4 +151,4 @@ Chat = RAG over everything with citations and live search fallback.
 - [x] 8. README with architecture diagram, offline demo run on cached data
 - [x] Frontend rebuild: Next.js app in frontend/ (export script, 6 sheets, evidence detail view, chat via scripts/chat_api.py)
 - [ ] Extras: flow map, more competitors, chat screenshot fallback
-- [ ] Later: market news upgrade -- (a) an "AI news" section: top 10-20 recent AI stories, each with how it could apply to Builderflow's field; (b) date filter on market news (24h / 7d / 1 month / 6 months / 1 year). Plan not yet written; ask Nikhil before starting.
+- [x] News upgrade: `python scripts/fetch_news.py` (Tavily news search, dated, two feeds: industry + AI with "how Builderflow could use it") -> data/cache/news.json -> export -> frontend News section with feed tabs and date filter (24h/7d/1m/6m/1y, filters stored items, no API call per click); chat answers "latest news" from the same items. Re-run fetch_news.py then export_frontend.py to refresh.

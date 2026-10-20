@@ -252,6 +252,13 @@ def main() -> None:
         for i, r in enumerate(growth["recommendations"])
     ]
 
+    news_file = CACHE / "news.json"  # written by scripts/fetch_news.py; optional
+    news = []
+    if news_file.exists():
+        for n in json.loads(news_file.read_text())["items"]:
+            meta = fetch_news_meta(n["url"])
+            news.append({**n, "image": meta["image"]})
+
     bundle = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "appSummary": (ROOT / "data" / "app_summary.md").read_text(),
@@ -267,6 +274,7 @@ def main() -> None:
             for i, t in enumerate(market["trends"])
         ],
         "reviewSnippets": norm_citations(market["review_snippets"]),
+        "news": news,
         "messaging": messaging,
         "pricing": pricing,
         "recommendations": recs,
@@ -276,6 +284,7 @@ def main() -> None:
 
     linked = sum(1 for r in recs for e in r["evidence"] if e["kind"] != "note")
     notes = sum(1 for r in recs for e in r["evidence"] if e["kind"] == "note")
+    print(f"news: {len(news)} items, {sum(1 for n in news if n['image'])} with images")
     shots = [v for v in _screen_cache.values()]
     print(f"wrote {OUT.relative_to(ROOT)}: {len(gap)} gap rows, {len(pains)} pain points, "
           f"{len(recs)} recommendations")

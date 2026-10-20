@@ -54,6 +54,20 @@ export type Trend = {
   image: string | null;
 };
 
+export type NewsItem = {
+  id: string;
+  feed: "industry" | "ai";
+  title: string;
+  url: string;
+  host: string;
+  /** ISO date, null when the source gave none */
+  published: string | null;
+  summary: string;
+  /** AI feed only: a concrete way Builderflow could apply the story */
+  builderflowUse: string | null;
+  image: string | null;
+};
+
 export type Messaging = {
   id: string;
   topic: string;
@@ -98,6 +112,7 @@ export type Bundle = {
   painPoints: PainPoint[];
   trends: Trend[];
   reviewSnippets: Citation[];
+  news: NewsItem[];
   messaging: Messaging[];
   pricing: PricingCompany[];
   recommendations: Recommendation[];

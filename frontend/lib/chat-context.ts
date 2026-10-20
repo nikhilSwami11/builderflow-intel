@@ -49,6 +49,14 @@ export function buildChatContext(): { system: string; sources: Record<string, Ci
   lines.push("", "## MARKET TRENDS");
   bundle.trends.forEach((t, i) => add(`T${i + 1}`, t.description, [t.citation]));
 
+  lines.push("", `## DATED NEWS (today is ${new Date().toISOString().slice(0, 10)}; feed | published | headline | summary | suggested use). Use these for "latest news" questions.`);
+  bundle.news
+    .slice()
+    .sort((a, b) => (b.published ?? "").localeCompare(a.published ?? ""))
+    .forEach((n, i) =>
+      add(`NW${i + 1}`, `${n.feed} | ${n.published?.slice(0, 10) ?? "undated"} | ${n.title} | ${n.summary}${n.builderflowUse ? ` | use: ${n.builderflowUse}` : ""}`, [{ source: "search", ref: n.url, note: n.title }]),
+    );
+
   lines.push("", "## PRICING (hand-verified, public plans)");
   bundle.pricing.forEach((c, i) =>
     add(`PR${i + 1}`, `${c.name}: ${c.plans.map((p) => `${p.label} ${p.price}${p.users ? ` (${p.users})` : ""}`).join("; ")}.${c.notes ? ` Notes: ${c.notes}` : ""}`, [c.citation]),
@@ -92,7 +100,7 @@ Grounding:
 - Builderflow's user guide is the source of truth. Gap matrix status meanings: yes = the guide explains it as working functionality; partial = the guide itself says it is coming soon or limited; unverified = the guide does not cover it (only the website or screenshots show it); no = no source mentions it. Screenshots are only illustrations from an empty new account, so empty screens prove nothing. None of this was tested in a running product.
 
 Output format: you always return JSON with three fields.
-- answer: the reply as plain text. Do NOT put item ids, citations, source lists or tags inside it.
+- answer: the reply as plain text. NEVER write item ids (G3, NW5, D12...), citations, source lists or tags inside it; refer to things by name. For news questions, name each story by a short headline and its date (e.g. "Oct 14 - ..."), newest first, and say how it applies to Builderflow.
 - sources: the ids of the data items below that your answer relied on (like G3, P2, R5, D12), at most 6, only ids that appear below. Never invent an id.
 - idea: null for almost every reply. Fill it ONLY when the conversation lands on, or the user proposes, an idea that is specific, new in this conversation, grounded in the data and genuinely worth acting on. At most one per reply, and rarely: if in doubt, null. title = max 8 words. parent = the id (N1, N2...) of the earlier idea it refines or branches from, else "root". why = one sentence.
 
