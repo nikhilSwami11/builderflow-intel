@@ -150,3 +150,4 @@ Chat = RAG over everything with citations and live search fallback.
 - [x] 8. README with architecture diagram, offline demo run on cached data
 - [x] Frontend rebuild: Next.js app in frontend/ (export script, 6 sheets, evidence detail view, chat via scripts/chat_api.py)
 - [ ] Extras: flow map, more competitors, chat screenshot fallback
+- [ ] Later: market news upgrade -- (a) an "AI news" section: top 10-20 recent AI stories, each with how it could apply to Builderflow's field; (b) date filter on market news (24h / 7d / 1 month / 6 months / 1 year). Plan not yet written; ask Nikhil before starting.
