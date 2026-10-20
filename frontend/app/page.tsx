@@ -10,7 +10,7 @@ import { getOpportunities, toCard } from "@/lib/opportunities";
 import type { Has } from "@/lib/types";
 
 const HAS_ORDER: Has[] = ["yes", "partial", "no", "unverified"];
-const COMPANIES = ["CompanyCam", "JobNimbus", "Buildertrend"];
+const COMPANIES = bundle.competitors;
 
 export default function Overview() {
   const { gapMatrix, painPoints, recommendations } = bundle;

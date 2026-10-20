@@ -31,7 +31,9 @@ contractors complain about, or where the market is heading. Product decisions ar
 The README must open with this reasoning.
 
 ## Default scope (time-boxed, I can expand it)
-- 3 competitors: CompanyCam (inspections), JobNimbus (CRM), Buildertrend (remodeler all-in-one).
+- 5 competitors: CompanyCam (inspections), JobNimbus (CRM), Buildertrend (remodeler all-in-one), Roofr (roofing, aerial
+  measurement), JobTread (budget-first job costing). Hand-collected notes for all 5 live in data/manual/<slug>.md
+  (split from data/competition.txt) and are added to each profile; pricing for all 5 is hand-verified.
   Optional later: Encircle, AccuLynx, DASH (Next Gear), JobTread.
 - One market node that also covers reviews (Reddit / G2 / Capterra snippets via search).
 - Optional extras, done last: flow map + Mermaid diagrams, chat screenshot fallback.

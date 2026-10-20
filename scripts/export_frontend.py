@@ -274,6 +274,7 @@ def main() -> None:
     bundle = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "appSummary": (ROOT / "data" / "app_summary.md").read_text(),
+        "competitors": [c["name"] for c in yaml.safe_load((ROOT / "data" / "competitors.yaml").read_text())],
         "gapMatrix": gap,
         "painPoints": pains,
         "trends": [

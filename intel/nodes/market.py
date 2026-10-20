@@ -71,7 +71,7 @@ def _format_context(results: dict[str, list[dict]]) -> str:
 
 
 PROMPT_TEMPLATE = """You are researching the market around contractor/remodeler lead
-management and CRM software (competitors include CompanyCam, JobNimbus, Buildertrend, and
+management and CRM software (competitors include CompanyCam, JobNimbus, Buildertrend, Roofr, JobTread, and
 similar tools) for Builderflow, a smaller player in this space. Below are raw search result
 snippets grouped by the query that found them.
 

@@ -114,7 +114,21 @@ def collect_competitor(company: str, homepage: str) -> list[CollectedPage]:
             print(f"  fetching {company} {kind}: {url}")
             pages.append(fetch_page(browser, company, url))
         browser.close()
+    pages.extend(_research_notes(company))
     return pages
+
+
+def _research_notes(company: str) -> list[CollectedPage]:
+    """Hand-collected research (data/manual/<slug>.md, split out of data/competition.txt) is
+    always added alongside the scraped pages, not only when a site blocks us."""
+    import re
+
+    path = f"data/manual/{re.sub(r'[^a-z0-9]+', '-', company.lower()).strip('-')}.md"
+    try:
+        text = open(path).read()
+    except FileNotFoundError:
+        return []
+    return [CollectedPage(company=company, url=path, fetched_at=_now(), raw_text=text)]
 
 
 BUILDERFLOW_PAGES = [

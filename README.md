@@ -19,8 +19,8 @@ what bigger competitors offer, what contractors complain about, or where the mar
 heading — product decisions are guesswork.
 
 So this tool builds that view: it reads Builderflow's own guide/website/screenshots,
-scrapes and extracts structured profiles from 3 competitors (CompanyCam, JobNimbus,
-Buildertrend), pulls market trends, contractor pain points and dated industry + AI news from
+scrapes and extracts structured profiles from 5 competitors (CompanyCam, JobNimbus,
+Buildertrend, Roofr, JobTread), pulls market trends, contractor pain points and dated industry + AI news from
 live search, and turns all of it into a feature gap matrix, pricing comparison,
 messaging-inconsistency flags, and a prioritized growth-advisor recommendation list — every
 claim backed by a citation back to its source. Plus a chat assistant that brainstorms with you
@@ -37,7 +37,7 @@ evidence, shown as source chips that reveal the real URL, guide section or scree
 
 | | |
 |---|---|
-| **Overview** — opportunities first (each gap is an opportunity), feature coverage, top complaints, quick wins. | **Gap Matrix** — Builderflow vs three competitors, graded by source strength, with an idea card above each gap. |
+| **Overview** — opportunities first (each gap is an opportunity), feature coverage, top complaints, quick wins. | **Gap Matrix** — Builderflow vs five competitors, graded by source strength, with an idea card above each gap. |
 | ![Gap Matrix](docs/screenshots/gap-matrix.png) | ![Pricing](docs/screenshots/pricing.png) |
 | **Pricing** — hand-verified public price ranges for six companies, plus plan tables. | **Pain Points & Market** — complaint themes as an interactive donut, then dated news. |
 | ![Pain Points](docs/screenshots/pain-points.png) | ![News](docs/screenshots/news.png) |
@@ -66,7 +66,7 @@ flowchart TD
         GUIDE[builderflow_guide<br/>source of truth]
         SITE[builderflow.app site pages]
         SHOTS[98 screenshots<br/>46 flows, references only]
-        COMP[3 competitor sites]
+        COMP[5 competitor sites<br/>+ hand-collected research notes]
         TAVILY[Tavily search<br/>trends, pain points, reviews, news]
     end
 
@@ -126,7 +126,7 @@ any guide section. It costs roughly a cent per message on gpt-5-mini.
   and `intel/rag.py`'s chat both use this.
 - **Tiers and theme clusters are computed deterministically, not left to the model.**
   Gap-matrix tiering (`table_stakes` / `differentiator` / `emerging`) is a counting rule —
-  how many of 3 competitors have a feature — so it's recomputed in Python after the LLM call
+  how many of the 5 competitors have a feature — so it's recomputed in Python after the LLM call
   rather than trusted per-row, where it drifted inconsistent across a long list. Pain-point
   themes use a closed `Literal` vocabulary (11 fixed tags) instead of open-ended "reuse a
   tag" instructions, which produced 13 unique one-off tags for 13 pain points the first time.
@@ -230,18 +230,19 @@ of it was tested in a running product.
 
 - **Builderflow**: the user guide, website pages and 98 screenshots across 46 flows, condensed into
   one `app_summary.md` that grounds every downstream node.
-- **Competitors**: CompanyCam, JobNimbus, Buildertrend — homepage, pricing, features, changelog,
-  each cached by URL.
+- **Competitors**: CompanyCam, JobNimbus, Buildertrend, Roofr and JobTread — homepage, pricing,
+  features and changelog scraped and cached by URL, plus hand-collected research notes
+  (`data/manual/<name>.md`, from `data/competition.txt`) added to each profile.
 - **Pricing is hand-verified, not LLM-extracted** — `data/manual/competitor_pricing.yaml` covers
   Builderflow, CompanyCam, JobNimbus, Buildertrend, Roofr and JobTread. Exact prices need to be
   exact, so the Pricing page renders that file directly and the pricing comparison is built from it
   in Python.
-- **Market**: 6 industry trends, 16 themed contractor pain points and 10 review snippets from
+- **Market**: industry trends, 13 themed contractor pain points and review snippets from
   Tavily search, cached by query.
 - **News**: 20 dated stories (10 industry, 10 AI), refreshed on demand with `fetch_news.py`.
-- **Analysis**: 21 gap-matrix rows (13 have it, 2 partial, 6 not in guide), pricing comparisons and
+- **Analysis**: 20 gap-matrix rows (10 have it, 2 partial, 8 not in guide), pricing comparisons and
   messaging inconsistencies.
-- **Growth advice**: 24 recommendations across build / double down / positioning / pricing / quick
+- **Growth advice**: 31 recommendations across build / double down / positioning / pricing / quick
   win, each citation-backed and traceable to the gap row, pain point, pricing row or messaging flag
   behind it.
 

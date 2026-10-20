@@ -27,7 +27,7 @@ OUT_PATH = Path("data/cache/growth_advice.json")
 
 PROMPT_TEMPLATE = """You are Builderflow's growth advisor. Builderflow is a smaller
 lead-management/CRM tool for remodelers and contractors, competing against CompanyCam,
-JobNimbus and Buildertrend. Below is already-structured, already-cited competitive analysis
+JobNimbus, Buildertrend, Roofr and JobTread. Below is already-structured, already-cited competitive analysis
 -- reason over it, don't re-derive it. Every fact below carries a [Cn] citation id; when a
 recommendation relies on a fact, put that id in citation_ids. Do not invent ids and do not
 write out URLs or paths yourself -- just reference the [Cn] ids.

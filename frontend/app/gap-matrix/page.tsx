@@ -8,7 +8,7 @@ import type { Has } from "@/lib/types";
 
 const RISK: Record<Has, number> = { no: 0, partial: 1, unverified: 2, yes: 3 };
 const HAS_ORDER: Has[] = ["yes", "partial", "no", "unverified"];
-const COMPANIES = ["CompanyCam", "JobNimbus", "Buildertrend"];
+const COMPANIES = bundle.competitors;
 
 export default function GapMatrix() {
   const rows = bundle.gapMatrix;
@@ -59,7 +59,7 @@ export default function GapMatrix() {
               return (
                 <tbody key={tier} className="divide-y divide-rule">
                   <tr className="bg-paper">
-                    <th colSpan={6} className="px-5 py-1.5 text-left text-[12px] font-medium text-text-2">
+                    <th colSpan={COMPANIES.length + 3} className="px-5 py-1.5 text-left text-[12px] font-medium text-text-2">
                       {TIER_LABEL[tier]} ({tierRows.length})
                     </th>
                   </tr>

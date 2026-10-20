@@ -108,6 +108,8 @@ export type Recommendation = {
 export type Bundle = {
   generatedAt: string;
   appSummary: string;
+  /** competitors the pipeline analysed, in data/competitors.yaml order */
+  competitors: string[];
   gapMatrix: GapRow[];
   painPoints: PainPoint[];
   trends: Trend[];

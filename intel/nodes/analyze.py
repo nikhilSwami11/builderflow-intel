@@ -92,8 +92,8 @@ def _format_profiles(profiles: dict) -> str:
 
 
 GAP_MATRIX_PROMPT = """You are building a feature gap matrix for Builderflow, a smaller
-lead-management/CRM tool for remodelers and contractors, against three competitors
-(CompanyCam, JobNimbus, Buildertrend).
+lead-management/CRM tool for remodelers and contractors, against five competitors
+(CompanyCam, JobNimbus, Buildertrend, Roofr, JobTread).
 
 A raw list of "do they have feature X" is weak on its own -- marketing pages overstate
 parity. So for every row, also classify how much it actually matters:
@@ -104,7 +104,7 @@ parity. So for every row, also classify how much it actually matters:
   a frontier opportunity. Only use this tier if the market trends actually support it, don't
   invent emerging features.
 
-Synthesize ONE canonical feature list across all three competitors' raw feature lists below
+Synthesize ONE canonical feature list across all five competitors' raw feature lists below
 -- merge obvious synonyms (e.g. "Mobile App" / "Technician Mobile App" / "Field app" are the
 same row). Weight the list toward CRM / lead-management / scheduling / estimating
 capabilities, not only inspection/photo-documentation features.
@@ -125,6 +125,19 @@ or smaller slice (for example payment schedules on a contract when the row is on
 payments and invoicing), the guide does not explain this capability: mark it "unverified".
 Never mark a feature "partial" or "no" because a screen is empty or because a feature does not
 appear in the screenshots. Never guess.
+
+competitors_with_it: list a competitor ONLY if its own feature list below names that capability
+or a direct equivalent. A loosely related feature does not count (for example daily logs are not
+a claims inspection wizard, and a supplier integration is not inventory tracking). Parity is
+often overstated on marketing pages, so when unsure leave the competitor out. It is normal for a
+row to have only one to three competitors, and for a specialised row to have none.
+
+Two known cases: (1) Claim Scope is an insurance-claims inspection wizard. No competitor below
+has that; at most credit a competitor whose list names inspection or claims reports (for example
+photo reports), and "daily logs", "forms" or "measurement reports" do not count. (2) Online card
+payments / invoicing: the guide only documents a payment-schedule tool on contracts, not taking
+online payments, so mark that row "unverified" and cite the guide section only as the neighbouring
+feature.
 
 Always include a row for each of Builderflow's own modules, even if no competitor has an
 equivalent: lead intake automation, estimating, work orders / field service management, finance
@@ -173,9 +186,9 @@ def _recompute_tier(count: int, total: int) -> str:
     of trusting the model's per-row tier label, which drifts inconsistent across a long list."""
     if count == 0:
         return "emerging"  # only legitimate when trend-grounded, per the prompt
-    if count == 1:
-        return "differentiator"
-    return "table_stakes"  # majority or all competitors have it
+    if count * 2 >= total:
+        return "table_stakes"  # at least half of the competitors have it
+    return "differentiator"  # only some competitors have it
 
 
 def _load_manual_pricing() -> dict:
@@ -195,7 +208,8 @@ def _pricing_model_gap_row(profiles: dict, manual_pricing: dict) -> GapMatrixEnt
         Citation(
             source="manual", ref="data/competition.txt",
             note="Buildertrend: flat per-tier pricing, unlimited users. CompanyCam: $29-34/mo per extra user "
-                 "above plan bundle. JobNimbus: cost scales with team size/seats.",
+                 "above plan bundle. JobNimbus: cost scales with team size/seats. Roofr: unlimited users on every "
+                 "tier. JobTread: per internal user, free external/field users.",
         ),
         Citation(
             source="website", ref="https://builderflow.app/pricing/",

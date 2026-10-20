@@ -16,7 +16,9 @@ below. Only use what's stated on these pages -- don't invent features, prices, o
 positioning that aren't evidenced here.
 
 For every feature, pricing tier, and the positioning/target_customer fields, set the
-citation's source to "website" and ref to the exact URL of the page it came from.
+citation's source to "website" and ref to the exact URL of the page it came from. If the page
+"URL" is a local path starting with data/ (hand-collected research notes), use source "manual"
+and that path as ref instead.
 
 === PAGES ===
 {pages}
