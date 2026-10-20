@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { ArrowUp, Lightbulb, Plus } from "lucide-react";
+import { ArrowUp, Lightbulb, Plus, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Cites } from "@/components/cite";
@@ -311,53 +311,130 @@ const titleOf = (slot: number): string | null => {
   }
 };
 
-/** Up to three separate conversations, kept in this browser. */
+const TABS_KEY = "bf-chat-tabs";
+
+const clearSlot = (slot: number) => {
+  try {
+    localStorage.removeItem(storeKey(slot));
+  } catch {}
+};
+
+/** Up to three separate conversations, kept in this browser. One tab is always open. */
 export function Chat() {
   const seedQuestion = useSearchParams().get("q");
+  const [open, setOpen] = useState<number[]>([1]);
   const [active, setActive] = useState(1);
+  const [seed, setSeed] = useState<{ slot: number; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [titles, setTitles] = useState<(string | null)[]>([null, null, null]);
+  const [titles, setTitles] = useState<Record<number, string | null>>({});
   const [ready, setReady] = useState(false);
-  const refresh = useCallback(() => setTitles(SLOTS.map(titleOf)), []);
+  const refresh = useCallback(
+    () => setTitles(Object.fromEntries(SLOTS.map((s) => [s, titleOf(s)]))),
+    [],
+  );
 
-  // A "Discuss" link goes into the first empty chat (or the last one when all three are used).
   useEffect(() => {
-    const t = SLOTS.map(titleOf);
-    setTitles(t);
-    if (seedQuestion) setActive(t.findIndex((x) => x === null) + 1 || 3);
+    let tabs = [1];
+    try {
+      const saved: number[] = JSON.parse(
+        localStorage.getItem(TABS_KEY) ?? "[1]",
+      );
+      if (
+        Array.isArray(saved) &&
+        saved.length &&
+        saved.every((n) => SLOTS.includes(n))
+      )
+        tabs = saved;
+    } catch {}
+    let current = tabs[0];
+    // A "Discuss" link opens a fresh tab (or replaces the last one when all three are used).
+    if (seedQuestion) {
+      const free = SLOTS.find((s) => !tabs.includes(s));
+      current = free ?? tabs[tabs.length - 1];
+      if (!free) clearSlot(current);
+      else tabs = [...tabs, free];
+      setSeed({ slot: current, text: seedQuestion });
+    }
+    setOpen(tabs);
+    setActive(current);
+    refresh();
     setReady(true);
-  }, [seedQuestion]);
+  }, [seedQuestion, refresh]);
+
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      localStorage.setItem(TABS_KEY, JSON.stringify(open));
+    } catch {}
+  }, [open, ready]);
+
+  function addTab() {
+    const free = SLOTS.find((s) => !open.includes(s));
+    if (free === undefined) return;
+    clearSlot(free);
+    setOpen([...open, free]);
+    setActive(free);
+    refresh();
+  }
+
+  function closeTab(slot: number) {
+    if (open.length === 1) return;
+    clearSlot(slot);
+    const rest = open.filter((s) => s !== slot);
+    setOpen(rest);
+    if (active === slot) setActive(rest[0]);
+    refresh();
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div role="tablist" aria-label="Chats" className="flex gap-1.5">
-        {SLOTS.map((slot) => (
-          <button
+        {open.map((slot, i) => (
+          <div
             key={slot}
-            role="tab"
-            aria-selected={active === slot}
-            disabled={busy && active !== slot}
-            onClick={() => setActive(slot)}
-            className={`max-w-48 truncate rounded-md border px-3 py-1.5 text-[13px] transition-colors duration-150 disabled:opacity-40 ${
+            className={`flex max-w-52 items-center rounded-md border text-[13px] transition-colors duration-150 ${
               active === slot
                 ? "border-ink bg-ink text-white"
                 : "border-rule-strong text-text-2 hover:border-accent hover:text-text"
             }`}
           >
-            {titles[slot - 1] ?? `Chat ${slot}`}
-          </button>
+            <button
+              role="tab"
+              aria-selected={active === slot}
+              disabled={busy && active !== slot}
+              onClick={() => setActive(slot)}
+              className="min-w-0 flex-1 truncate py-1.5 pr-1 pl-3 text-left disabled:opacity-40"
+            >
+              {titles[slot] ?? `Chat ${i + 1}`}
+            </button>
+            {open.length > 1 && (
+              <button
+                aria-label={`Close ${titles[slot] ?? `chat ${i + 1}`}`}
+                disabled={busy}
+                onClick={() => closeTab(slot)}
+                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-70 hover:bg-white/15 hover:opacity-100 disabled:opacity-30"
+              >
+                <X size={13} aria-hidden />
+              </button>
+            )}
+          </div>
         ))}
+        {open.length < SLOTS.length && (
+          <button
+            aria-label="New chat tab"
+            disabled={busy}
+            onClick={addTab}
+            className="flex size-8 items-center justify-center rounded-md border border-rule-strong text-text-2 transition-colors duration-150 hover:border-accent hover:text-text disabled:opacity-40"
+          >
+            <Plus size={15} aria-hidden />
+          </button>
+        )}
       </div>
       {ready && (
         <ChatPane
           key={active}
           slot={active}
-          seed={
-            seedQuestion &&
-            active === (titles.findIndex((x) => x === null) + 1 || 3)
-              ? seedQuestion
-              : null
-          }
+          seed={seed?.slot === active ? seed.text : null}
           onSaved={refresh}
           onBusy={setBusy}
         />
