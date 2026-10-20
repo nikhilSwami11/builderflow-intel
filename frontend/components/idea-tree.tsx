@@ -5,14 +5,14 @@ import { useMemo, useState } from "react";
 import type { IdeaNode } from "@/lib/idea-tree";
 
 const DOT = 16;
-const COL = 38; // distance between levels
-const ROW = 34; // distance between siblings
+const ROW = 38; // distance between levels
+const COL = 30; // distance between siblings
 const PAD = 14;
 
 type Placed = IdeaNode & { x: number; y: number; depth: number };
 
-/** Left-to-right tree: depth sets x; each leaf takes the next row and a parent sits at the middle
- *  of its children. Roots hang off a small ring that stands for the conversation. */
+/** Top-to-bottom tree: depth sets y; each leaf takes the next column and a parent sits at the
+ *  middle of its children. Roots hang off a small ring that stands for the conversation. */
 function layout(nodes: IdeaNode[]): {
   placed: Placed[];
   width: number;
@@ -20,20 +20,20 @@ function layout(nodes: IdeaNode[]): {
 } {
   const kids = (id: string | null) => nodes.filter((n) => n.parent === id);
   const placed: Placed[] = [];
-  let row = 0;
+  let col = 0;
   const walk = (n: IdeaNode, depth: number): number => {
     const cs = kids(n.id);
-    const ys = cs.length ? cs.map((c) => walk(c, depth + 1)) : [row++ * ROW];
-    const y = (Math.min(...ys) + Math.max(...ys)) / 2;
-    placed.push({ ...n, x: (depth + 1) * COL, y, depth });
-    return y;
+    const xs = cs.length ? cs.map((c) => walk(c, depth + 1)) : [col++ * COL];
+    const x = (Math.min(...xs) + Math.max(...xs)) / 2;
+    placed.push({ ...n, x, y: (depth + 1) * ROW, depth });
+    return x;
   };
   kids(null).forEach((n) => walk(n, 0));
   const depth = Math.max(0, ...placed.map((p) => p.depth));
   return {
     placed,
-    width: (depth + 1) * COL + DOT + PAD * 2,
-    height: Math.max(row, 1) * ROW + PAD * 2 - (ROW - DOT),
+    width: Math.max(col, 1) * COL + PAD * 2 - (COL - DOT),
+    height: (depth + 1) * ROW + DOT + PAD * 2,
   };
 }
 
@@ -56,19 +56,19 @@ export function IdeaTree({
   } | null>(null);
   const byId = new Map(placed.map((p) => [p.id, p]));
   const roots = placed.filter((p) => p.parent === null);
-  const rootY = roots.length
-    ? roots.reduce((a, p) => a + p.y, 0) / roots.length
+  const rootX = roots.length
+    ? roots.reduce((a, p) => a + p.x, 0) / roots.length
     : 0;
   const c = DOT / 2;
   const edge = (x1: number, y1: number, x2: number, y2: number) => {
-    const mx = (x1 + x2) / 2;
-    return `M${x1 + PAD + c},${y1 + PAD + c} C${mx + PAD + c},${y1 + PAD + c} ${mx + PAD + c},${y2 + PAD + c} ${x2 + PAD + c},${y2 + PAD + c}`;
+    const my = (y1 + y2) / 2;
+    return `M${x1 + PAD + c},${y1 + PAD + c} C${x1 + PAD + c},${my + PAD + c} ${x2 + PAD + c},${my + PAD + c} ${x2 + PAD + c},${y2 + PAD + c}`;
   };
 
   return (
     <aside
       aria-label="Idea tree"
-      className="absolute inset-y-0 right-0 z-20 flex w-[min(12rem,100%)] flex-col border-l border-rule bg-paper shadow-xl lg:static lg:shrink-0 lg:shadow-none"
+      className="absolute inset-y-0 right-0 z-20 flex w-[min(10rem,100%)] flex-col border-l border-rule bg-paper shadow-xl lg:static lg:shrink-0 lg:shadow-none"
     >
       <div className="flex items-center gap-1.5 border-b border-rule px-3 py-2.5 text-[12px] font-medium">
         <Lightbulb size={13} aria-hidden /> Ideas
@@ -94,7 +94,7 @@ export function IdeaTree({
             >
               {placed.map((p) => {
                 const from = p.parent ? byId.get(p.parent) : null;
-                const [x1, y1] = from ? [from.x, from.y] : [0, rootY];
+                const [x1, y1] = from ? [from.x, from.y] : [rootX, 0];
                 const lit = hover?.node.id === p.id || focus === p.id;
                 return (
                   <path
@@ -112,7 +112,7 @@ export function IdeaTree({
               aria-hidden
               title="This conversation"
               className="absolute rounded-full border-2 border-ink bg-sheet"
-              style={{ left: PAD, top: rootY + PAD, width: DOT, height: DOT }}
+              style={{ left: rootX + PAD, top: PAD, width: DOT, height: DOT }}
             />
             {placed.map((p) => {
               const on = focus === p.id || hover?.node.id === p.id;
