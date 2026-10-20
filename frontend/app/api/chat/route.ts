@@ -92,8 +92,22 @@ export async function POST(req: Request) {
             seen.add(`${c.source}|${c.ref}`),
         );
       writer.write({ type: "data-sources", data: { citations } });
-      for (const idea of reply.ideas)
+      // Drop ideas that repeat one already proposed in this conversation (the model sometimes
+      // re-proposes the idea the user has just accepted, or an earlier one).
+      const words = (t: string) =>
+        new Set(t.toLowerCase().match(/[a-z0-9]+/g) ?? []);
+      const similar = (a: string, b: string) => {
+        const x = words(a);
+        const y = words(b);
+        const shared = [...x].filter((w) => y.has(w)).length;
+        return shared / Math.max(1, Math.min(x.size, y.size)) >= 0.85;
+      };
+      const known = nodes.map((n) => n.title);
+      for (const idea of reply.ideas) {
+        if (known.some((t) => similar(t, idea.title))) continue;
+        known.push(idea.title);
         writer.write({ type: "data-idea", data: idea });
+      }
     },
     onError: (e) => (e instanceof Error ? e.message : "Chat failed"),
   });
