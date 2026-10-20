@@ -85,7 +85,7 @@ export function IdeaTree({
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-2">
         {nodes.length ? (
-          <div className="relative" style={{ width, height }}>
+          <div className="relative mx-auto" style={{ width, height }}>
             <svg
               width={width}
               height={height}
