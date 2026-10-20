@@ -80,17 +80,24 @@ function ChatPane({
     onSaved();
   }, [messages, status, STORE_KEY, onSaved]);
 
+  // Follow the stream only while the reader is at the bottom. Jumping instantly (not smooth) avoids
+  // animations restarting on every streamed word; scrolling up opts out until they return.
+  const stick = useRef(true);
+  const onScroll = () => {
+    const el = scroller.current;
+    if (el)
+      stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
   useEffect(() => {
-    scroller.current?.scrollTo({
-      top: scroller.current.scrollHeight,
-      behavior: "smooth",
-    });
+    const el = scroller.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [messages, status]);
 
   function send(question: string, withDecisions: Decisions = decisions) {
     const q = question.trim();
     if (!q || busy) return;
     setInput("");
+    stick.current = true; // sending a message always jumps to the bottom
     void sendMessage({ text: q }, { body: { decisions: withDecisions } });
   }
 
@@ -167,6 +174,7 @@ function ChatPane({
 
         <div
           ref={scroller}
+          onScroll={onScroll}
           className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pt-14 pb-5"
         >
           {messages.length === 0 && (
