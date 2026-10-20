@@ -1,5 +1,11 @@
 import { openai } from "@ai-sdk/openai";
-import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, Output, streamText } from "ai";
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  Output,
+  streamText,
+} from "ai";
 import { buildChatContext } from "@/lib/chat-context";
 import { type ChatMessage, replySchema } from "@/lib/chat-types";
 import { buildTree, treeForPrompt } from "@/lib/idea-tree";
@@ -8,9 +14,14 @@ export const maxDuration = 60;
 
 const { system, sources } = buildChatContext();
 
-// With an AI Gateway key the plain model string routes through Vercel's gateway; without one,
-// fall back to calling OpenAI directly with OPENAI_API_KEY.
-const model = process.env.AI_GATEWAY_API_KEY ? "openai/gpt-5-mini" : openai("gpt-5-mini");
+// Which model route to use, in order: AI Gateway when AI_GATEWAY_API_KEY is set; OpenAI directly
+// when OPENAI_API_KEY is set (local dev, or a Vercel project without gateway credits); otherwise,
+// on Vercel, the gateway authenticated by the platform's own token (needs a card on the account).
+const model = process.env.AI_GATEWAY_API_KEY
+  ? "openai/gpt-5-mini"
+  : process.env.OPENAI_API_KEY
+    ? openai("gpt-5-mini")
+    : "openai/gpt-5-mini";
 
 // Best-effort per-visitor cap (each serverless instance keeps its own counts, which is enough to
 // stop a casual runaway on a public demo link; the provider's spend limit is the hard stop).
@@ -19,7 +30,8 @@ const WINDOW_MS = 60 * 60 * 1000;
 const hits = new Map<string, number[]>();
 
 function limited(req: Request): boolean {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
   const now = Date.now();
   const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
   recent.push(now);
@@ -28,7 +40,11 @@ function limited(req: Request): boolean {
 }
 
 export async function POST(req: Request) {
-  if (limited(req)) return new Response("Chat limit reached for this hour. Please try again later.", { status: 429 });
+  if (limited(req))
+    return new Response(
+      "Chat limit reached for this hour. Please try again later.",
+      { status: 429 },
+    );
 
   const { messages }: { messages: ChatMessage[] } = await req.json();
   const nodes = buildTree(messages);
@@ -36,6 +52,7 @@ export async function POST(req: Request) {
 
   const stream = createUIMessageStream<ChatMessage>({
     execute: async ({ writer }) => {
+      let failure: unknown = null;
       const result = streamText({
         model,
         system: fullSystem,
@@ -43,6 +60,9 @@ export async function POST(req: Request) {
         output: Output.object({ schema: replySchema }),
         maxOutputTokens: 2500,
         providerOptions: { openai: { reasoningEffort: "low" } },
+        onError: ({ error }) => {
+          failure = error;
+        },
       });
 
       // Forward only `answer` as text, as it grows; sources and idea go out as their own parts.
@@ -58,13 +78,19 @@ export async function POST(req: Request) {
       }
       writer.write({ type: "text-end", id });
 
+      if (failure) throw failure; // show the provider's real message, not "No output generated"
       const reply = await result.output;
       const seen = new Set<string>();
       const citations = reply.sources
         .flatMap((s) => sources[s.trim().toUpperCase()] ?? [])
-        .filter((c) => !seen.has(`${c.source}|${c.ref}`) && seen.add(`${c.source}|${c.ref}`));
+        .filter(
+          (c) =>
+            !seen.has(`${c.source}|${c.ref}`) &&
+            seen.add(`${c.source}|${c.ref}`),
+        );
       writer.write({ type: "data-sources", data: { citations } });
-      for (const idea of reply.ideas) writer.write({ type: "data-idea", data: idea });
+      for (const idea of reply.ideas)
+        writer.write({ type: "data-idea", data: idea });
     },
     onError: (e) => (e instanceof Error ? e.message : "Chat failed"),
   });
