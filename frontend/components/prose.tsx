@@ -6,6 +6,15 @@ import remarkGfm from "remark-gfm";
 
 export type Marker = { id: string; anchor: string; title: string };
 
+/** Every heading level renders the same: a small, bold section label with a hairline under it. */
+function HeadingTag({ children }: { children: ReactNode }) {
+  return (
+    <h4 className="mt-2 border-b border-rule pt-1 pb-1 text-[13.5px] font-semibold tracking-tight">
+      {children}
+    </h4>
+  );
+}
+
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** The model's markdown reply. Phrases it flagged as ideas become clickable highlights that jump
@@ -71,22 +80,10 @@ export function Prose({
           ol: ({ children }) => (
             <ol className="list-decimal space-y-1 pl-5">{children}</ol>
           ),
-          h1: ({ children }) => (
-            <h3 className="pt-1 text-[16px] font-semibold tracking-tight">
-              {children}
-            </h3>
-          ),
-          h2: ({ children }) => (
-            <h3 className="pt-1 text-[15px] font-semibold tracking-tight">
-              {children}
-            </h3>
-          ),
-          h3: ({ children }) => (
-            <h4 className="pt-1 text-[14px] font-semibold">{children}</h4>
-          ),
-          h4: ({ children }) => (
-            <h4 className="pt-1 text-[14px] font-semibold">{children}</h4>
-          ),
+          h1: ({ children }) => <HeadingTag>{children}</HeadingTag>,
+          h2: ({ children }) => <HeadingTag>{children}</HeadingTag>,
+          h3: ({ children }) => <HeadingTag>{children}</HeadingTag>,
+          h4: ({ children }) => <HeadingTag>{children}</HeadingTag>,
           a: ({ href, children }) => (
             <a
               href={href}
