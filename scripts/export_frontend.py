@@ -202,7 +202,19 @@ def link_evidence(evidence: list[str], gap, pains, messaging, pricing) -> list[d
     return links
 
 
+def copy_chat_sources() -> None:
+    """The chat route reads these at request time. Copy them inside frontend/ so a deploy that
+    only uploads frontend/ carries them (frontend/data/ is gitignored, like the bundle)."""
+    dest = ROOT / "frontend" / "data" / "source"
+    dest.mkdir(parents=True, exist_ok=True)
+    files = [ROOT / "data" / "builderflow_guide.md", ROOT / "data" / "app_summary.md"]
+    files += [ROOT / "data" / "builderflow_site" / f"{n}.md" for n in ("homepage", "pricing", "who-we-serve")]
+    for f in files:
+        shutil.copyfile(f, dest / f.name)
+
+
 def main() -> None:
+    copy_chat_sources()
     analysis = json.loads((CACHE / "analysis_result.json").read_text())
     growth = json.loads((CACHE / "growth_advice.json").read_text())
     market = json.loads((CACHE / "market_insights.json").read_text())

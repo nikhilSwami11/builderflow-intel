@@ -4,10 +4,13 @@ import { bundle } from "./data";
 import { shortName } from "./opportunities";
 import type { Citation } from "./types";
 
+// Copied here by scripts/export_frontend.py so the deployed app carries them.
+const SRC = join(process.cwd(), "data", "source");
+
 /** The guide split at "##" headings (each section keeps its "#" chapter as a prefix), so each
  *  section can be cited by id. The guide is ~12k tokens: small enough to send whole. */
 function guideSections(): { heading: string; body: string }[] {
-  const md = readFileSync(join(process.cwd(), "..", "data", "builderflow_guide.md"), "utf8");
+  const md = readFileSync(join(SRC, "builderflow_guide.md"), "utf8");
   const out: { heading: string; body: string }[] = [];
   let chapter = "";
   let cur: { heading: string; body: string } | null = null;
@@ -77,11 +80,11 @@ export function buildChatContext(): { system: string; sources: Record<string, Ci
 
   lines.push("", "## BUILDERFLOW PUBLIC WEBSITE (marketing copy; the guide wins where they differ)");
   WEBSITE_PAGES.forEach((name, i) => {
-    const text = readFileSync(join(process.cwd(), "..", "data", "builderflow_site", `${name}.md`), "utf8").trim();
+    const text = readFileSync(join(SRC, `${name}.md`), "utf8").trim();
     add(`W${i + 1}`, `${name}\n${text}`, [{ source: "website", ref: `builderflow.app/${name === "homepage" ? "" : name}`, note: null }]);
   });
 
-  const appSummary = readFileSync(join(process.cwd(), "..", "data", "app_summary.md"), "utf8");
+  const appSummary = readFileSync(join(SRC, "app_summary.md"), "utf8");
 
   const system = `You are the Builderflow Growth Intelligence assistant. You answer questions from Builderflow's founders and product leads, using ONLY the data below. The guide sections [D..] hold the full how-to text: use them for questions about what a Builderflow feature does or how it works.
 

@@ -12,7 +12,24 @@ const { system, sources } = buildChatContext();
 // fall back to calling OpenAI directly with OPENAI_API_KEY.
 const model = process.env.AI_GATEWAY_API_KEY ? "openai/gpt-5-mini" : openai("gpt-5-mini");
 
+// Best-effort per-visitor cap (each serverless instance keeps its own counts, which is enough to
+// stop a casual runaway on a public demo link; the provider's spend limit is the hard stop).
+const LIMIT = 30;
+const WINDOW_MS = 60 * 60 * 1000;
+const hits = new Map<string, number[]>();
+
+function limited(req: Request): boolean {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
+  const now = Date.now();
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  return recent.length > LIMIT;
+}
+
 export async function POST(req: Request) {
+  if (limited(req)) return new Response("Chat limit reached for this hour. Please try again later.", { status: 429 });
+
   const { messages }: { messages: ChatMessage[] } = await req.json();
   const nodes = buildTree(messages);
   const fullSystem = `${system}\n\n## IDEAS SO FAR IN THIS CONVERSATION (use these ids as ideas[].parent; the next idea you add gets id N${nodes.length + 1})\n${treeForPrompt(nodes)}`;
