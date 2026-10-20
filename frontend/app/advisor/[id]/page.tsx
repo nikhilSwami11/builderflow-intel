@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { BackLink } from "@/components/back-link";
 import { CategoryChip } from "@/components/category-chip";
 import { Cites } from "@/components/cite";
 import { DiscussButton } from "@/components/idea-tag";
@@ -15,11 +14,17 @@ function GapList({ rows }: { rows: GapRow[] }) {
   return (
     <ul className="divide-y divide-rule">
       {rows.map((g) => (
-        <li key={g.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-3 first:pt-0 last:pb-0">
+        <li
+          key={g.id}
+          className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-3 first:pt-0 last:pb-0"
+        >
           <StateChip has={g.builderflowHas} />
-          <span className="min-w-0 flex-1 basis-64 text-[14px] font-medium">{g.feature}</span>
+          <span className="min-w-0 flex-1 basis-64 text-[14px] font-medium">
+            {g.feature}
+          </span>
           <span className="text-[13px] text-text-2">
-            {TIER_LABEL[g.tier]} · competitors with it: {g.competitors.join(", ") || "none"}
+            {TIER_LABEL[g.tier]} · competitors with it:{" "}
+            {g.competitors.join(", ") || "none"}
           </span>
           <Cites citations={g.citations} />
         </li>
@@ -32,12 +37,19 @@ function PainList({ rows }: { rows: PainPoint[] }) {
   return (
     <ul className="divide-y divide-rule">
       {rows.map((p) => (
-        <li key={p.id} className="flex flex-wrap items-start gap-x-4 gap-y-1.5 py-3 first:pt-0 last:pb-0">
+        <li
+          key={p.id}
+          className="flex flex-wrap items-start gap-x-4 gap-y-1.5 py-3 first:pt-0 last:pb-0"
+        >
           <span className="min-w-0 flex-1 basis-72 text-[14px]">
-            <span className="mr-2 rounded bg-accent-wash px-1.5 py-0.5 text-[12px] font-medium">{THEME_LABEL[p.theme]}</span>
+            <span className="mr-2 rounded bg-accent-wash px-1.5 py-0.5 text-[12px] font-medium">
+              {THEME_LABEL[p.theme]}
+            </span>
             {p.description}
           </span>
-          <span className="text-[13px] text-text-2">{p.companies.join(", ") || "Industry-wide"}</span>
+          <span className="text-[13px] text-text-2">
+            {p.companies.join(", ") || "Industry-wide"}
+          </span>
           <Cites citations={[p.citation]} />
         </li>
       ))}
@@ -68,7 +80,15 @@ function MessagingList({ rows }: { rows: Messaging[] }) {
   );
 }
 
-function MoreRows({ count, label, children }: { count: number; label: string; children: React.ReactNode }) {
+function MoreRows({
+  count,
+  label,
+  children,
+}: {
+  count: number;
+  label: string;
+  children: React.ReactNode;
+}) {
   if (!count) return null;
   return (
     <details className="mt-4 border-t border-rule pt-3">
@@ -87,7 +107,11 @@ export function generateStaticParams() {
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   // Reading `params` has to sit inside a Suspense boundary (Next 16 instant navigation).
   return (
-    <Suspense fallback={<div className="mx-auto h-64 max-w-4xl animate-pulse rounded-xl border border-rule bg-sheet" />}>
+    <Suspense
+      fallback={
+        <div className="mx-auto h-64 max-w-4xl animate-pulse rounded-xl border border-rule bg-sheet" />
+      }
+    >
       <Recommendation params={params} />
     </Suspense>
   );
@@ -105,14 +129,16 @@ async function Recommendation({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link href="/advisor" className="inline-flex items-center gap-1.5 text-[13px] text-text-2 hover:text-text">
-        <ArrowLeft size={14} aria-hidden /> Growth Advisor
-      </Link>
+      <BackLink href="/advisor" label="Back" />
 
       <header className="rounded-xl border border-rule bg-sheet px-5 py-5">
         <CategoryChip category={rec.category} />
-        <h1 className="mt-2 text-[26px] leading-tight font-semibold tracking-tight text-balance">{rec.title}</h1>
-        <p className="mt-3 max-w-[68ch] text-[15px] leading-relaxed">{rec.detail}</p>
+        <h1 className="mt-2 text-[26px] leading-tight font-semibold tracking-tight text-balance">
+          {rec.title}
+        </h1>
+        <p className="mt-3 max-w-[68ch] text-[15px] leading-relaxed">
+          {rec.detail}
+        </p>
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
           <Cites citations={rec.citations} />
           <DiscussButton question={discussQuestion(rec)} />
