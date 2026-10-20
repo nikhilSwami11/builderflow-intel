@@ -6,6 +6,7 @@ import { ArrowUp, Lightbulb, Plus, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Cites } from "@/components/cite";
+import { Prose } from "@/components/prose";
 import { IdeaTree } from "@/components/idea-tree";
 import type { ChatMessage } from "@/lib/chat-types";
 import { buildTree } from "@/lib/idea-tree";
@@ -19,91 +20,6 @@ const STARTERS = [
   "What do contractors complain about most?",
   "Where do our website, portal and guide disagree?",
 ];
-
-/** Minimal rendering for the model's prose: paragraphs, "- " / "1." lists (also when a list
- *  follows a lead-in line in the same block) and **bold**. */
-const LIST_ITEM = /^\s*(?:[-•*]|\d+[.)])\s+/;
-
-type Marker = { id: string; anchor: string; title: string };
-
-function Prose({
-  text,
-  markers = [],
-  onMarker,
-}: {
-  text: string;
-  markers?: Marker[];
-  onMarker?: (id: string) => void;
-}) {
-  // Phrases the model flagged as ideas become clickable highlights that jump to their tree node.
-  const lower = text.toLowerCase();
-  const found = markers.filter(
-    (m) => m.anchor && lower.includes(m.anchor.toLowerCase()),
-  );
-  const marked = (str: string, key: number) => {
-    const hits = found.filter((m) =>
-      str.toLowerCase().includes(m.anchor.toLowerCase()),
-    );
-    if (!hits.length) return str;
-    const re = new RegExp(
-      `(${hits.map((m) => m.anchor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
-      "i",
-    );
-    return str.split(re).map((part, i) => {
-      const m = hits.find((h) => h.anchor.toLowerCase() === part.toLowerCase());
-      return m ? (
-        <button
-          key={`${key}-${i}`}
-          onClick={() => onMarker?.(m.id)}
-          title={`Idea: ${m.title}`}
-          className="rounded-sm bg-[#fff1c2] px-0.5 underline decoration-[#c98a00] decoration-2 underline-offset-2 transition-colors duration-150 hover:bg-[#fde68a]"
-        >
-          {part}
-        </button>
-      ) : (
-        part
-      );
-    });
-  };
-  const bold = (line: string) =>
-    line.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-      part.startsWith("**") ? (
-        <strong key={i} className="font-semibold">
-          {marked(part.slice(2, -2), i)}
-        </strong>
-      ) : (
-        marked(part, i)
-      ),
-    );
-
-  // Blank lines separate paragraphs. Inside one, consecutive list lines group into one list and
-  // consecutive plain lines into one paragraph.
-  const blocks: { list: boolean; lines: string[] }[] = [];
-  for (const para of text.split(/\n{2,}/)) {
-    let prev: { list: boolean; lines: string[] } | null = null;
-    for (const line of para.split("\n").filter((l) => l.trim())) {
-      const list = LIST_ITEM.test(line);
-      if (prev && prev.list === list) prev.lines.push(line);
-      else blocks.push((prev = { list, lines: [line] }));
-    }
-  }
-
-  return (
-    <div className="space-y-2.5">
-      {blocks.map((b, i) =>
-        b.list ? (
-          <ul key={i} className="list-disc space-y-1 pl-5">
-            {b.lines.map((l, j) => (
-              <li key={j}>{bold(l.replace(LIST_ITEM, ""))}</li>
-            ))}
-          </ul>
-        ) : (
-          <p key={i}>{bold(b.lines.join(" "))}</p>
-        ),
-      )}
-    </div>
-  );
-}
 
 const textOf = (m: ChatMessage) =>
   m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");

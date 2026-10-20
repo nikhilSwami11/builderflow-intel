@@ -5,7 +5,7 @@ import type { Citation } from "./types";
 /** What the model must return on every turn. The UI renders each field in its own place, so
  *  nothing the model writes can leak into the wrong spot. `answer` comes first so it streams first. */
 export const replySchema = z.object({
-  answer: z.string().describe("The reply shown to the user. Plain text, no ids, no tags."),
+  answer: z.string().describe("The reply shown to the user, in Markdown. No item ids, no tags."),
   sources: z.array(z.string()).describe("Ids of the data items the answer relied on, e.g. G3, P2, D12. Empty if none."),
   ideas: z
     .array(
