@@ -21,6 +21,16 @@ tool. HARD LIMIT: 1500 tokens (~1100 words) -- stop well short of that, do not p
 Base it ONLY on the guide, website, and screenshot analyses below -- do not invent features
 or modules not evidenced in this material.
 
+Evidence rules (important):
+- The screenshots were captured from a brand-new account with no data, so empty states ("No
+  projects yet", empty lists) are normal and say NOTHING about whether a feature is live, partial
+  or in pilot. Never infer availability from an empty screen, and never treat a feature that
+  is missing from the screenshots as missing from the product.
+- For what is actually available today, trust the guide and the portal note above the website.
+  Where the guide or portal says a module is "coming soon", "rolling out" or pilot-only, record it
+  as NOT generally available. Where only the website's marketing claims a module and the guide
+  does not describe it, record it as "claimed on the website, not confirmed by the guide".
+
 Cover, briefly: what Builderflow is, its modules/features (what's live vs what's rolling out
 next, per the portal vs the guide vs the website -- flag any mismatch rather than picking one),
 who it's for, and its core workflow as a compact numbered list (not one paragraph per step).

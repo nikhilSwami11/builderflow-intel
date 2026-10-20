@@ -28,7 +28,8 @@ function score(gap: GapRow, rec: Recommendation): number {
 export function getOpportunities(): Opportunity[] {
   const gaps = bundle.gapMatrix
     .filter((g) => g.builderflowHas !== "yes")
-    .sort((a, b) => (a.tier === "table_stakes" ? 0 : 1) - (b.tier === "table_stakes" ? 0 : 1));
+    // table-stakes first, then the features more competitors already ship
+    .sort((a, b) => (a.tier === "table_stakes" ? 0 : 1) - (b.tier === "table_stakes" ? 0 : 1) || b.competitors.length - a.competitors.length);
   const used = new Set<string>();
 
   return gaps.map((gap) => {
@@ -40,7 +41,13 @@ export function getOpportunities(): Opportunity[] {
 
     const name = shortName(gap.feature);
     const status =
-      gap.builderflowHas === "partial" ? "only partial" : gap.builderflowHas === "no" ? "not found in our data" : "unverified";
+      gap.builderflowHas === "partial"
+        ? "only partial (pilot or rolling out)"
+        : gap.builderflowHas === "claimed"
+          ? "claimed on the website but not confirmed by the guide"
+          : gap.builderflowHas === "no"
+            ? "not found in our data"
+            : "unverified";
     const who = gap.competitors.length ? `${gap.competitors.join(", ")} ship it` : "no competitor in our data ships it";
     return {
       gap,
@@ -50,3 +57,22 @@ export function getOpportunities(): Opportunity[] {
     };
   });
 }
+
+/** The few fields a card needs, so a client component can take them as props. */
+export type OpportunityCardData = {
+  id: string;
+  name: string;
+  competitors: string[];
+  recId: string | null;
+  recTitle: string | null;
+  question: string;
+};
+
+export const toCard = (o: Opportunity): OpportunityCardData => ({
+  id: o.gap.id,
+  name: o.name,
+  competitors: o.gap.competitors,
+  recId: o.rec?.id ?? null,
+  recTitle: o.rec?.title ?? null,
+  question: o.question,
+});

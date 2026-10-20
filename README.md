@@ -193,6 +193,13 @@ gitignored (derived from cache / possibly private), so re-run the export after c
 the pipeline output changes. The Python chat (`scripts/chat_api.py`, `intel/rag.py`) still works
 but the frontend no longer uses it; it also had live web search, which the new chat does not.
 
+### How "Builderflow status" is decided
+The gap matrix labels each feature by the strongest source, not by what looks present: **have it**
+= the user guide describes it as working and nothing flags it as pilot; **partial** = guide/portal
+says pilot, coming soon or rolling out; **claimed** = only the website advertises it; **unverified**
+= screenshots only. Screenshots came from a brand-new account, so empty screens count as nothing
+either way. None of it was tested in a running product.
+
 ## What's in the data
 
 - **Builderflow**: 265 guide sections, 10 website pages, 98 screenshots across 46 flows → one

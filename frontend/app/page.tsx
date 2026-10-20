@@ -1,22 +1,22 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BarStrip } from "@/components/bars";
-import { OpportunityCard } from "@/components/opportunity-card";
+import { OpportunityGrid } from "@/components/opportunity-grid";
 import { PageTitle } from "@/components/page-title";
 import { Section } from "@/components/section";
 import { HAS_TONE } from "@/components/state-chip";
 import { bundle, HAS_LABEL, THEME_LABEL, TIER_LABEL, TIER_ORDER } from "@/lib/data";
-import { getOpportunities } from "@/lib/opportunities";
+import { getOpportunities, toCard } from "@/lib/opportunities";
 import type { Has } from "@/lib/types";
 
-const HAS_ORDER: Has[] = ["yes", "partial", "no", "unverified"];
+const HAS_ORDER: Has[] = ["yes", "partial", "claimed", "no", "unverified"];
 const COMPANIES = ["CompanyCam", "JobNimbus", "Buildertrend"];
 
 export default function Overview() {
   const { gapMatrix, painPoints, recommendations } = bundle;
   const opportunities = getOpportunities();
 
-  const tierRows = TIER_ORDER.map((tier) => {
+  const tierRows = TIER_ORDER.filter((t) => gapMatrix.some((g) => g.tier === t)).map((tier) => {
     const rows = gapMatrix.filter((g) => g.tier === tier);
     return {
       label: TIER_LABEL[tier],
@@ -50,11 +50,7 @@ export default function Overview() {
         <h2 id="opps" className="mb-3 text-[15px] font-semibold tracking-tight">
           Opportunities
         </h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          {opportunities.map((o) => (
-            <OpportunityCard key={o.gap.id} opp={o} />
-          ))}
-        </div>
+        <OpportunityGrid items={opportunities.map(toCard)} initial={3} />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">

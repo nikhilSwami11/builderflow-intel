@@ -1,13 +1,13 @@
 import { Cites } from "@/components/cite";
-import { OpportunityCard } from "@/components/opportunity-card";
+import { OpportunityGrid } from "@/components/opportunity-grid";
 import { PageTitle } from "@/components/page-title";
 import { HAS_TONE, StateChip } from "@/components/state-chip";
 import { bundle, HAS_LABEL, TIER_LABEL, TIER_ORDER } from "@/lib/data";
-import { getOpportunities, shortName } from "@/lib/opportunities";
+import { getOpportunities, shortName, toCard } from "@/lib/opportunities";
 import type { Has } from "@/lib/types";
 
-const RISK: Record<Has, number> = { no: 0, partial: 1, unverified: 2, yes: 3 };
-const HAS_ORDER: Has[] = ["yes", "partial", "no", "unverified"];
+const RISK: Record<Has, number> = { no: 0, partial: 1, claimed: 2, unverified: 3, yes: 4 };
+const HAS_ORDER: Has[] = ["yes", "partial", "claimed", "no", "unverified"];
 const COMPANIES = ["CompanyCam", "JobNimbus", "Buildertrend"];
 
 export default function GapMatrix() {
@@ -22,11 +22,7 @@ export default function GapMatrix() {
         <h2 id="opps" className="mb-3 text-[15px] font-semibold tracking-tight">
           Opportunities
         </h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          {opportunities.map((o) => (
-            <OpportunityCard key={o.gap.id} opp={o} />
-          ))}
-        </div>
+        <OpportunityGrid items={opportunities.map(toCard)} initial={6} />
       </section>
 
       <section aria-labelledby="all" className="rounded-xl border border-rule bg-sheet">

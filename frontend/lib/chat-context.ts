@@ -57,7 +57,7 @@ How to respond:
 Grounding:
 - Use ONLY the data below for facts about Builderflow, competitors, pricing, complaints and the market. You may reason and suggest freely, but label anything not in the data as your suggestion.
 - If the data does not answer the question, say "Not found in our data" and say what is missing. Never write that Builderflow "lacks" something; say it is "not found in our data".
-- Builderflow's status in the gap matrix reflects what its own website, guide and portal claim. It was not checked in a running product, so do not present "have it" as verified.
+- Gap matrix status meanings: yes = the user guide describes it as working; partial = the guide or portal says it is pilot-only, coming soon or rolling out; claimed = only the website advertises it, not confirmed by the guide; unverified = seen in screenshots only. None of this was tested in a running product. Screenshots came from an empty new account, so empty screens prove nothing.
 
 Citations:
 - Put the ids in square brackets right after the claim they support, like [G3] or [P2][R5]. Use at most 1 to 3 ids per claim, only ids you actually used, and only ids that appear below. Never invent an id.

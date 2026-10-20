@@ -14,6 +14,7 @@ export const HAS_LABEL: Record<Has, string> = {
   yes: "Have it",
   partial: "Partial",
   no: "Not found in our data",
+  claimed: "Claimed",
   unverified: "Unverified",
 };
 

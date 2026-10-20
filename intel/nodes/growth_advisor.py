@@ -34,8 +34,11 @@ write out URLs or paths yourself -- just reference the [Cn] ids.
 
 Produce a set of recommendations across all five categories:
 - "build": gaps worth closing. Prioritize table_stakes rows where builderflow_has is "no" or
-  "partial" (real risk, not optional) over "emerging" rows (speculative, lower urgency).
-- "double_down": things Builderflow already does well (builderflow_has="yes" on a
+  "partial" (real risk, not optional) over "emerging" rows (speculative, lower urgency). A row
+  marked "claimed" is advertised on the website but not confirmed by the guide: treat it as
+  "make it real and say so", not as an existing strength.
+- "double_down": things Builderflow already does well (builderflow_has="yes" -- confirmed by
+  the guide, not merely "claimed" -- on a
   differentiator row, or a module competitors' pain points suggest they struggle with and
   Builderflow doesn't).
 - "positioning": messaging moves -- especially where a competitor's named, themed pain point

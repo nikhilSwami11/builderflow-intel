@@ -8,7 +8,7 @@ are weak signal on their own):
 1. Gap matrix -- one cached mini-model call synthesizes one canonical feature list across
    competitors (dedupes synonyms), tiers each row (table_stakes / differentiator / emerging,
    the last one tied to market trends, not invented), and marks Builderflow's status as
-   yes/no/partial/unverified grounded only in app_summary + screen digest. One extra row (the
+   yes/partial/claimed/unverified/no grounded only in app_summary + screen digest. One extra row (the
    flat-vs-per-seat pricing model) is appended deterministically in Python -- see
    _pricing_model_gap_row below -- since it's a hand-verified fact, not something worth an
    LLM guessing at.
@@ -107,10 +107,20 @@ Synthesize ONE canonical feature list across all three competitors' raw feature 
 same row). Weight the list toward CRM / lead-management / scheduling / estimating
 capabilities, not only inspection/photo-documentation features.
 
-For builderflow_has, use ONLY the Builderflow app_summary and screen digest below -- "yes" if
-clearly present, "partial" if present but pilot/limited/rolling-out per the summary, "no" if
-clearly absent, "unverified" if the screens suggest it but the guide/website don't confirm
-(or vice versa). Never guess.
+For builderflow_has, use ONLY the Builderflow app_summary and screen digest below, and decide
+by the strongest source (guide and portal note outrank the website; the website outranks screenshots):
+- "yes": the guide describes it as working functionality, and nothing in the app_summary flags it
+  as pilot, coming soon or rolling out.
+- "partial": the guide, portal note or app_summary says it is pilot-only, coming soon, rolling
+  out or limited.
+- "claimed": only Builderflow's website marketing (module list, pricing table) mentions it; the
+  guide does not describe it and nothing confirms it is available today.
+- "unverified": screenshots show UI for it, but neither the guide nor the website covers it
+  (or the sources conflict in a way you cannot resolve).
+- "no": clearly absent from every source.
+The screenshots were captured from a brand-new account with no data, so an empty state is NOT
+evidence that a feature is partial or limited, and a feature not appearing in the screenshots is
+NOT evidence that it is absent. Never guess.
 
 citations: for each row, cite the competitor source (use their website homepage as ref if no
 more specific URL is available) and, for Builderflow's status, cite a builderflow_site/*.md
