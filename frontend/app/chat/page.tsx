@@ -1,11 +1,10 @@
 import { Suspense } from "react";
 import { Chat } from "@/components/chat";
-import { PageTitle } from "@/components/page-title";
 
 export default function ChatPage() {
   return (
-    <div className="mx-auto flex h-[calc(100dvh-11rem)] min-h-[24rem] max-w-4xl flex-col gap-4 lg:h-[calc(100dvh-4rem)]">
-      <PageTitle title="Chat" />
+    <div className="flex h-[calc(100dvh-3rem)] min-h-[24rem] flex-col lg:h-[calc(100dvh-4rem)]">
+      <h1 className="sr-only">Chat</h1>
       <Suspense fallback={null}>
         <Chat />
       </Suspense>

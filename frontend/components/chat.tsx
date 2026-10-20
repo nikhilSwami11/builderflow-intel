@@ -178,7 +178,12 @@ function ChatPane({
   }, [seedQuestion, sendMessage]);
 
   const tree = buildTree(messages);
-  const [focus, setFocus] = useState<string | null>(null);
+  const [focus, setFocusNode] = useState<string | null>(null);
+  const [treeOpen, setTreeOpen] = useState(false);
+  const setFocus = (id: string) => {
+    setFocusNode(id);
+    setTreeOpen(true);
+  };
   const markersOf = (m: ChatMessage) =>
     tree
       .filter((n) => n.messageId === m.id && n.anchor)
@@ -199,11 +204,11 @@ function ChatPane({
     (status === "streaming" && last?.role === "assistant" && !textOf(last));
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-rule bg-sheet">
+    <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-xl border border-rule bg-sheet">
       <div className="flex min-w-0 flex-1 flex-col">
         <div
           ref={scroller}
-          className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5"
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pt-14 pb-5"
         >
           {messages.length === 0 && (
             <div className="mx-auto max-w-2xl pt-6">
@@ -329,14 +334,35 @@ function ChatPane({
           </button>
         </form>
       </div>
-      <IdeaTree
-        nodes={tree}
-        focus={focus}
-        onPick={(n) => {
-          setFocus(n.id);
-          jumpTo(n.messageId);
-        }}
-      />
+      <button
+        onClick={() => setTreeOpen((o) => !o)}
+        aria-expanded={treeOpen}
+        className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md border border-rule-strong bg-sheet px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150 hover:border-accent"
+      >
+        <Lightbulb
+          size={13}
+          aria-hidden
+          className="text-[#c98a00]"
+          fill="#fde68a"
+        />
+        Ideas
+        {tree.length > 0 && (
+          <span className="tnum rounded bg-accent-wash px-1.5 text-text-2">
+            {tree.length}
+          </span>
+        )}
+      </button>
+      {treeOpen && (
+        <IdeaTree
+          onClose={() => setTreeOpen(false)}
+          nodes={tree}
+          focus={focus}
+          onPick={(n) => {
+            setFocus(n.id);
+            jumpTo(n.messageId);
+          }}
+        />
+      )}
     </div>
   );
 }

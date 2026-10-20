@@ -1,6 +1,6 @@
 "use client";
 
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { IdeaNode } from "@/lib/idea-tree";
 
@@ -45,10 +45,12 @@ export function IdeaTree({
   nodes,
   focus,
   onPick,
+  onClose,
 }: {
   nodes: IdeaNode[];
   focus: string | null;
   onPick: (node: IdeaNode) => void;
+  onClose: () => void;
 }) {
   const { placed, width, height } = useMemo(() => layout(nodes), [nodes]);
   const [hover, setHover] = useState<{
@@ -69,15 +71,22 @@ export function IdeaTree({
   return (
     <aside
       aria-label="Idea tree"
-      className="hidden w-[28rem] shrink-0 flex-col border-l border-rule bg-paper lg:flex"
+      className="absolute inset-y-0 right-0 z-20 flex w-[min(28rem,100%)] flex-col border-l border-rule bg-paper shadow-xl"
     >
       <div className="flex items-center gap-2 border-b border-rule px-4 py-3 text-[13px] font-medium">
         <Lightbulb size={15} aria-hidden /> Idea tree
         {nodes.length > 0 && (
-          <span className="tnum ml-auto text-[12px] font-normal text-text-2">
+          <span className="tnum text-[12px] font-normal text-text-2">
             {nodes.length}
           </span>
         )}
+        <button
+          onClick={onClose}
+          aria-label="Close idea tree"
+          className="ml-auto flex size-6 items-center justify-center rounded-md text-text-2 transition-colors duration-150 hover:bg-accent-wash hover:text-text"
+        >
+          <X size={15} aria-hidden />
+        </button>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-3">
         {nodes.length ? (

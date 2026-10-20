@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full lg:flex">
+      <body suppressHydrationWarning className="min-h-full lg:flex">
         <Sidebar revised={formatDate(bundle.generatedAt)} />
         <main className="min-w-0 flex-1 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">{children}</main>
       </body>
