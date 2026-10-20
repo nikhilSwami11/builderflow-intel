@@ -42,10 +42,17 @@ The README must open with this reasoning.
   It's a straight sequence with no branching/fan-out, and intel/cache.py already makes
   re-runs free; a graph framework would add indirection without adding capability. Dropped
   langgraph from requirements.txt accordingly.
-- Streamlit UI (custom theme in .streamlit/config.toml) -- being replaced by frontend/ (Next.js 16 +
-  Tailwind 4, hand-built components, design direction from impeccable: "Blueprint set").
-  Read-only over data/cache via `python scripts/export_frontend.py` -> frontend/data/bundle.json.
-  Chat will call a thin FastAPI shim over intel/rag.py answer(). intel/ stays untouched.
+- Web app: frontend/ (Next.js 16 + Tailwind 4, hand-built components, black/white "Vercel-like" design,
+  designed with the impeccable skill). Read-only over data/cache via `python scripts/export_frontend.py`
+  -> frontend/data/bundle.json. Live at https://builderflow-intel.vercel.app (Vercel project
+  builderflow-intel, deployed from frontend/ with the CLI). The old Streamlit app.py still works.
+- Chat (frontend/app/api/chat/route.ts): Vercel AI SDK structured output (Zod `replySchema`: answer in
+  Markdown, sources ids, ideas[]). Sends the whole analysis + dated news + full guide as context every
+  turn (~25k tokens, no vector search). Model route: AI_GATEWAY_API_KEY -> gateway; else OPENAI_API_KEY ->
+  OpenAI direct; else on Vercel the gateway via platform OIDC (needs a card on the Vercel account).
+  Ideas the model flags become anchored highlights + a node/edge idea tree (drawer). Up to 3 chat tabs
+  in localStorage. 30 msgs/hour/visitor soft limit.
+- intel/ stays untouched by the frontend work; scripts/ holds fetch_news.py and export_frontend.py.
 - Chroma for vectors (RAG over everything the pipeline produces, phase 7)
 - Playwright for JS-rendered pages, Tavily for search (cached queries + live chat fallback)
 - OpenAI API: mini vision model for screenshots, mini model for collect/extract/market/
@@ -119,7 +126,8 @@ Flow map (optional extra)
 
 ## UI tabs
 Overview, Gap Matrix, Pricing, Pain Points & Market, Growth Advisor, Chat.
-Chat = RAG over everything with citations and live search fallback.
+Chat = brainstorming partner over the whole analysis, news and guide, with source chips and an idea tree
+(the Python RAG chat in intel/rag.py is the older version, kept as a fallback).
 
 ## Conventions (always follow)
 - Cache every fetch and LLM call to data/cache. Re-runs must cost nothing.
@@ -138,6 +146,7 @@ Chat = RAG over everything with citations and live search fallback.
 - Run pipeline: `python -m intel.graph`
 - Refresh news: `python scripts/fetch_news.py`
 - UI (old): `streamlit run app.py`
+- Deploy: `cd frontend && npx vercel deploy --prod --yes` (run export_frontend.py first; .vercelignore uploads the gitignored frontend/data)
 - UI (new): `python scripts/export_frontend.py && cd frontend && npm install && npm run dev`
 
 ## Build phases (update the checkboxes as you go)
@@ -152,3 +161,6 @@ Chat = RAG over everything with citations and live search fallback.
 - [x] Frontend rebuild: Next.js app in frontend/ (export script, 6 sheets, evidence detail view, chat via scripts/chat_api.py)
 - [ ] Extras: flow map, more competitors, chat screenshot fallback
 - [x] News upgrade: `python scripts/fetch_news.py` (Tavily news search, dated, two feeds: industry + AI with "how Builderflow could use it") -> data/cache/news.json -> export -> frontend News section with feed tabs and date filter (24h/7d/1m/6m/1y, filters stored items, no API call per click); chat answers "latest news" from the same items. Re-run fetch_news.py then export_frontend.py to refresh.
+- [x] Chat upgrades: streaming, structured JSON replies, Markdown, full guide in context, idea tree + inline idea highlights, 3 chat tabs
+- [x] Deploy: live on Vercel (https://builderflow-intel.vercel.app); README rewritten with screenshots in docs/screenshots/
+- [ ] Demo prep: 60-second flow (see chat history), optional video

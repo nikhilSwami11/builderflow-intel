@@ -1,5 +1,9 @@
 # Builderflow Growth Intelligence Tool
 
+**Live demo: https://builderflow-intel.vercel.app**
+
+![Overview](docs/screenshots/overview.png)
+
 ## Why this exists
 
 This was an open-ended assessment: "build something useful for Builderflow." No external
@@ -16,63 +20,87 @@ heading — product decisions are guesswork.
 
 So this tool builds that view: it reads Builderflow's own guide/website/screenshots,
 scrapes and extracts structured profiles from 3 competitors (CompanyCam, JobNimbus,
-Buildertrend), pulls market trends and contractor pain points from live search, and turns
-all of it into a feature gap matrix, pricing comparison, messaging-inconsistency flags, and
-a prioritized growth-advisor recommendation list — every claim backed by a citation back to
-its source. Plus a chat assistant that answers ad-hoc growth questions over everything the
-pipeline has produced, with the same citation discipline.
+Buildertrend), pulls market trends, contractor pain points and dated industry + AI news from
+live search, and turns all of it into a feature gap matrix, pricing comparison,
+messaging-inconsistency flags, and a prioritized growth-advisor recommendation list — every
+claim backed by a citation back to its source. Plus a chat assistant that brainstorms with you
+over everything the pipeline produced, with the same citation discipline, and turns the ideas
+you reach into a tree.
 
 A reliable demo running entirely on cached data beats a perfect live scraper — that's the
 design bias throughout.
+
+## The app
+
+Six pages, black-and-white, built to be read at a glance. Every card, row and idea links to its
+evidence, shown as source chips that reveal the real URL, guide section or screenshot on hover.
+
+| | |
+|---|---|
+| **Overview** — opportunities first (each gap is an opportunity), feature coverage, top complaints, quick wins. | **Gap Matrix** — Builderflow vs three competitors, graded by source strength, with an idea card above each gap. |
+| ![Gap Matrix](docs/screenshots/gap-matrix.png) | ![Pricing](docs/screenshots/pricing.png) |
+| **Pricing** — hand-verified public price ranges for six companies, plus plan tables. | **Pain Points & Market** — complaint themes as an interactive donut, then dated news. |
+| ![Pain Points](docs/screenshots/pain-points.png) | ![News](docs/screenshots/news.png) |
+| **News** — Industry and AI feeds, grouped by age (24 hours to 1 year). AI stories carry a "how Builderflow could use it" note and a Discuss button. | **Growth Advisor** — best-supported ideas, an action board and a complaint-theme filter. |
+| ![Advisor](docs/screenshots/advisor.png) | |
+
+### Chat as a brainstorming partner
+
+![Chat](docs/screenshots/chat.png)
+
+- Streams short replies by default and goes long when asked, rendered as Markdown.
+- Answers from the whole analysis, the dated news and the **full user guide** (about 25k tokens
+  per question, sent whole rather than searched), and cites its sources as chips.
+- Every reply is a fixed JSON object (`answer`, `sources`, `ideas`) validated by a Zod schema,
+  so ids and tags can never leak into the text.
+- When the conversation lands on a strong idea, the model records it. The phrase is highlighted
+  inline, and the **Ideas** drawer shows the idea tree: building on an idea adds a child,
+  alternatives become siblings, and hovering a node shows its reasoning.
+- Up to three chats in tabs, saved in your browser.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
     subgraph sources[Sources]
-        GUIDE[builderflow_guide.docx<br/>265 sections]
+        GUIDE[builderflow_guide<br/>source of truth]
         SITE[builderflow.app site pages]
-        SHOTS[98 screenshots<br/>46 flows]
-        COMP[3 competitor sites<br/>CompanyCam / JobNimbus / Buildertrend]
-        TAVILY[Tavily search<br/>trends, pain points, reviews]
+        SHOTS[98 screenshots<br/>46 flows, references only]
+        COMP[3 competitor sites]
+        TAVILY[Tavily search<br/>trends, pain points, reviews, news]
     end
 
-    GUIDE --> INGEST["intel.ingest<br/>guide convert + vision pass (gpt-5-mini)"]
+    GUIDE --> INGEST["intel.ingest<br/>guide convert + vision pass"]
     SHOTS --> INGEST
-    INGEST --> SCREENS[(screen_analyses.json)]
-    SITE --> SUMMARY[app_summary.md<br/>~1500 tokens]
-    SCREENS --> SUMMARY
+    INGEST --> SUMMARY[app_summary.md]
+    SITE --> SUMMARY
     GUIDE --> SUMMARY
 
     COMP --> COLLECT[collect] --> EXTRACT[extract]
     TAVILY --> MARKET[market]
-
     EXTRACT --> ANALYZE[analyze]
     MARKET --> ANALYZE
     SUMMARY --> ANALYZE
-    SCREENS --> ANALYZE
-    ANALYZE --> GROWTH["growth_advisor<br/>(gpt-5 -- the one node not on mini)"]
+    ANALYZE --> GROWTH["growth_advisor (gpt-5)"]
+    TAVILY --> NEWS["scripts/fetch_news.py<br/>dated industry + AI feeds"]
 
     ANALYZE --> CACHE[(data/cache/*.json<br/>disk cache, keyed by content hash)]
     MARKET --> CACHE
     GROWTH --> CACHE
-    COLLECT -.->|every fetch cached by URL| CACHE
-    EXTRACT -.->|every LLM call cached| CACHE
+    NEWS --> CACHE
 
-    CACHE --> RAGINGEST["intel.rag ingest<br/>417 chunks, kept with real citations"]
-    SUMMARY --> RAGINGEST
-    SCREENS --> RAGINGEST
-    GUIDE --> RAGINGEST
-    SITE --> RAGINGEST
-    RAGINGEST --> CHROMA[(Chroma index)]
-
-    CHROMA --> CHAT["chat answer()<br/>retrieve -> cite-by-id -> gpt-5-mini"]
-    TAVILY -.->|fallback when best match is weak| CHAT
-
-    CACHE --> UI[Streamlit app.py]
-    CHAT --> UI
-    UI --> TABS["Overview / Gap Matrix / Pricing /<br/>Pain Points & Market / Growth Advisor / Chat"]
+    CACHE --> EXPORT["scripts/export_frontend.py"]
+    GUIDE --> EXPORT
+    EXPORT --> BUNDLE[(frontend/data/bundle.json<br/>+ source texts + screenshots)]
+    BUNDLE --> NEXT["Next.js app (Vercel)<br/>6 pages read the bundle"]
+    BUNDLE --> CHATAPI["/api/chat route<br/>Vercel AI SDK, structured output"]
+    CHATAPI --> GATEWAY[Vercel AI Gateway -> gpt-5-mini]
 ```
+
+**Two halves, one file between them.** The Python side (`intel/`, `scripts/`) does all the
+slow, paid work (scraping, search, LLM calls) and caches every step to `data/cache/`. The
+Next.js side never calls those services: page loads read one exported `bundle.json`, so the
+site is fast and costs nothing to browse. The only live model call is the chat route.
 
 **The pipeline is a plain cached function chain, not a LangGraph graph.** LangGraph was in
 the original stack plan, but the actual pipeline has no branching or fan-out — it's a
@@ -81,6 +109,11 @@ straight sequence (`growth_advisor` calls `analyze`, which calls `market` and
 idempotent and free on re-run. A graph framework would add indirection without adding
 capability here, so it was cut; `langgraph` isn't in requirements.txt. `intel/graph.py` is
 the real single entrypoint (`python -m intel.graph`).
+
+**The chat sends everything instead of searching.** The original Python chat used a Chroma
+vector index (still in `intel/rag.py`). The whole analysis plus the guide is only about 25k
+tokens, so the web chat sends it on every question: no retrieval misses, and answers can cite
+any guide section. It costs roughly a cent per message on gpt-5-mini.
 
 ## Design choices worth knowing about
 
@@ -104,35 +137,40 @@ the real single entrypoint (`python -m intel.graph`).
   parity. The gap matrix tiers every row by how many competitors actually have it and grounds
   Builderflow's own status only in the guide + screenshots, not the website's own marketing
   copy, since Builderflow's website/portal/guide already disagree with each other.
+- **Gap status is graded by source strength, with the guide as truth.** Screenshots came from a
+  brand-new empty account, so an empty screen or an "add" button proves nothing; the website
+  and portal never override the guide. See "How Builderflow status is decided" below.
+- **The chat output is a schema, not prose to be cleaned up.** An earlier version asked the
+  model to append tags and ids to its text, then stripped them with regexes; they leaked. The
+  reply is now structured output, rendered field by field.
+- **News filters stored items.** Each news item keeps its published date, so the 24h / 7d /
+  1m / 6m / 1y filter is a client-side filter, not an API call per click.
 
 ## Repo layout
 
 ```
-app.py                      Streamlit entry, 6 tabs, reads only cached JSON -- no LLM calls from the UI
-intel/
-  graph.py                  pipeline entrypoint (plain function chain)
-  ingest.py                 Builderflow ingestion entrypoint (guide convert -> vision -> app_summary)
-  guide.py                  docx -> markdown, preserving heading hierarchy
-  vision.py                 screenshot vision pass (gpt-5-mini, cached by image hash)
-  modules.py                maps screenshot folders to guide modules
-  summary.py                builds app_summary.md
-  rag.py                    Chroma ingest + retrieval + chat answer()
-  citations.py              shared citation-by-id mechanism
-  cache.py                  disk cache keyed by content hash
-  schemas.py                every structured LLM output, as Pydantic models
-  nodes/
-    collect.py               competitor page fetch (Playwright), cached by URL
-    extract.py                features/pricing/positioning extraction
-    market.py                 industry trends, pain points, review snippets (Tavily)
-    analyze.py                gap matrix, pricing comparison, messaging inconsistencies
-    growth_advisor.py         prioritized recommendations (gpt-5)
+app.py                      Streamlit app (the original UI; still works, no longer the main one)
+intel/                      the pipeline (plain cached function chain)
+  graph.py                  entrypoint:  python -m intel.graph
+  ingest.py, guide.py,      Builderflow ingestion: guide -> markdown, vision pass, app_summary
+    vision.py, summary.py
+  nodes/                    collect, extract, market, analyze, growth_advisor
+  rag.py, citations.py      Chroma index for the Streamlit chat; citation-by-id helper
+  cache.py, schemas.py      disk cache keyed by content hash; Pydantic models
+scripts/
+  fetch_news.py             dated industry + AI news (Tavily) -> data/cache/news.json
+  export_frontend.py        cache -> frontend/data/bundle.json, source texts, screenshots
+  chat_api.py               FastAPI shim over the Python chat (no longer used by the frontend)
+frontend/                   Next.js 16 + Tailwind 4, hand-built components
+  app/                      pages + app/api/chat (streaming route, rate limit)
+  components/, lib/         UI, idea tree, evidence/idea matching, chat context
 data/
-  builderflow_guide.docx     user guide (primary source, private -- gitignored)
-  builderflow_site/          public website text, by page
-  builderflow_screens/       98 screenshots across 46 flows (private -- gitignored)
-  competitors.yaml           competitor names + homepage URLs
-  manual/                    hand-pasted fallback text for blocked sites
-  cache/                     every fetch + every LLM output + the Chroma index (gitignored)
+  builderflow_guide.docx    user guide (primary source, private -- gitignored)
+  builderflow_site/         public website text, by page
+  builderflow_screens/      98 screenshots across 46 flows (private -- gitignored)
+  competitors.yaml, manual/ competitor URLs; hand-verified pricing and fallback text
+  cache/                    every fetch and LLM output (gitignored)
+docs/screenshots/           images used in this README
 ```
 
 ## Setup
@@ -147,51 +185,37 @@ playwright install chromium
 
 ## Running it
 
-**From scratch** (needs API keys, does real work):
+**1. Build the data** (needs API keys; every step is cached, so re-runs are free):
 ```bash
-python -m intel.ingest    # guide conversion + vision pass + app_summary (one-time, ~98 cached vision calls)
-python -m intel.graph     # collect -> extract -> market -> analyze -> growth_advisor
-python -m intel.rag       # build the Chroma chat index
-streamlit run app.py
+python -m intel.ingest         # guide conversion + vision pass + app_summary (one-time)
+python -m intel.graph          # collect -> extract -> market -> analyze -> growth_advisor
+python scripts/fetch_news.py   # dated industry + AI news
+python scripts/export_frontend.py   # cache -> frontend/data/bundle.json (+ source texts, screenshots)
 ```
 
-**Offline demo, entirely on cached data** (the point of the caching discipline: this costs
-$0 and makes 0 network calls once `data/cache/` is populated):
+**2. Run the web app locally:**
 ```bash
-source .venv/bin/activate
-python -m intel.graph
-```
-```
-gap_matrix=17 pricing_comparison=3 top_pain_points=8 messaging_inconsistencies=5 growth_recommendations=22
-```
-*(Row counts can shift slightly between regenerations -- gap-matrix synthesis and pain-point
-selection involve LLM judgment calls, e.g. how finely to split two similar features into one
-row vs two. Counts are illustrative, not a contract.)*
-*(The "fetching.../searching..." lines you'll see are `intel/cache.py` cache lookups, not
-live network calls -- every one of them is a hit once the cache is warm.)*
-
-```bash
-streamlit run app.py
-```
-Opens all 6 tabs against the cached pipeline output. The Chat tab needs the Chroma index
-built once (`python -m intel.rag`, 417 chunks, also idempotent/cached) but asks no new
-questions of the LLM until you actually type one.
-
-**Web frontend** (Next.js; replaces the Streamlit app for presenting). Reads the same cached
-output through one exported JSON. Chat streams from a Next.js route (Vercel AI SDK), which
-sends the whole analysis (~8k tokens) plus the app summary to the model on every question --
-no vector search -- and answers with citation ids that become source chips.
-```bash
-python scripts/export_frontend.py            # cache -> frontend/data/bundle.json (+ cited screenshots)
 cd frontend && npm install
-echo "OPENAI_API_KEY=..." > .env.local       # or AI_GATEWAY_API_KEY=... to route through Vercel's AI Gateway
-npm run dev                                   # http://localhost:3000
+echo "OPENAI_API_KEY=..." > .env.local     # or AI_GATEWAY_API_KEY=... for Vercel's AI Gateway
+npm run dev                                 # http://localhost:3000
 ```
-Six pages: Overview, Gap Matrix, Pricing, Pain Points & Market, Growth Advisor (each idea has
-a detail page with its linked evidence) and Chat. `bundle.json` and the copied screenshots are
-gitignored (derived from cache / possibly private), so re-run the export after cloning or after
-the pipeline output changes. The Python chat (`scripts/chat_api.py`, `intel/rag.py`) still works
-but the frontend no longer uses it; it also had live web search, which the new chat does not.
+`frontend/data/` (the bundle and source texts) and the copied screenshots are gitignored: they
+derive from the cache and from private material, so re-run the export after cloning or after any
+data refresh.
+
+**3. Deploy to Vercel** (from `frontend/`; `.vercelignore` makes the CLI upload the gitignored
+data folder):
+```bash
+npx vercel login
+npx vercel link --yes --project builderflow-intel
+npx vercel deploy --prod --yes
+```
+On Vercel the chat goes through the AI Gateway, authenticated by the platform's own token (a card
+on the Vercel account unlocks the free credits). Elsewhere it uses `OPENAI_API_KEY`. The chat route
+caps each visitor at 30 messages an hour, best-effort per server instance; set a spend limit at the
+provider as the hard stop. To publish new data: run steps 1, then `vercel deploy --prod` again.
+
+**Old Streamlit UI** (reads the same cache): `python -m intel.rag && streamlit run app.py`.
 
 ### How "Builderflow status" is decided
 The user guide is the source of truth; screenshots only illustrate it (they came from a
@@ -204,44 +228,39 @@ of it was tested in a running product.
 
 ## What's in the data
 
-- **Builderflow**: 265 guide sections, 10 website pages, 98 screenshots across 46 flows → one
-  ~1500-token `app_summary.md` that grounds every downstream node.
-- **Competitors**: CompanyCam, JobNimbus, Buildertrend — homepage, pricing, features,
-  changelog, each cached by URL (feeds the gap matrix / growth advisor / chat).
-- **Pricing is hand-verified end to end, not LLM-extracted** — `data/manual/competitor_pricing.yaml`
-  (sourced from `data/competition.txt` + Builderflow's own pricing page) covers Builderflow,
-  CompanyCam, JobNimbus, Buildertrend, Roofr and JobTread. The Pricing tab renders it directly;
-  `analyze.py`'s `pricing_comparison` (which growth_advisor and chat cite) is now built the
-  same way in Python, not an LLM call — exact prices need to be exact, not inferred from a
-  scrape. The gap matrix also gets one deterministically-injected row for the flat-vs-per-seat
-  pricing-model split (Buildertrend's differentiator), for the same reason. AI still covers
-  feature parity, positioning, and messaging-inconsistency analysis.
-- **Market**: 6 industry trends, 16 themed contractor pain points, 10 review snippets, all
-  via live Tavily search, cached by query.
-- **Analysis**: ~16 gap-matrix rows, 3 pricing comparisons, 8 selected top pain points, ~4
+- **Builderflow**: the user guide, website pages and 98 screenshots across 46 flows, condensed into
+  one `app_summary.md` that grounds every downstream node.
+- **Competitors**: CompanyCam, JobNimbus, Buildertrend — homepage, pricing, features, changelog,
+  each cached by URL.
+- **Pricing is hand-verified, not LLM-extracted** — `data/manual/competitor_pricing.yaml` covers
+  Builderflow, CompanyCam, JobNimbus, Buildertrend, Roofr and JobTread. Exact prices need to be
+  exact, so the Pricing page renders that file directly and the pricing comparison is built from it
+  in Python.
+- **Market**: 6 industry trends, 16 themed contractor pain points and 10 review snippets from
+  Tavily search, cached by query.
+- **News**: 20 dated stories (10 industry, 10 AI), refreshed on demand with `fetch_news.py`.
+- **Analysis**: 21 gap-matrix rows (13 have it, 2 partial, 6 not in guide), pricing comparisons and
   messaging inconsistencies.
-- **Growth advice**: ~20 recommendations across build / double-down / positioning / pricing /
-  quick-win, every one citation-backed and now also traceable to the specific gap-matrix row,
-  pain point, pricing row, or messaging flag that justified it (`evidence` field, surfaced in
-  the Growth Advisor tab).
-- **Chat index**: 417 chunks across all of the above.
+- **Growth advice**: 24 recommendations across build / double down / positioning / pricing / quick
+  win, each citation-backed and traceable to the gap row, pain point, pricing row or messaging flag
+  behind it.
 
-## What's not done (cut for time, not forgotten)
+## Known limits
 
-- Flow map / Mermaid diagrams of Builderflow's own UI flows (optional extra, CLAUDE.md).
-- More competitors beyond the 3 (Encircle, AccuLynx, DASH, JobTread were optional).
-- Chat screenshot fallback (re-querying a single linked screenshot inline in chat).
-- Chat doesn't hard-refuse off-topic questions — if retrieval is weak it falls back to a
-  live web search and will answer genuinely unrelated questions too, using whatever that
-  search finds. Fine for a growth-advisor demo; would need an explicit scope check for
-  production.
+- Relevance links between news, pain points, gaps and ideas are keyword heuristics, not model
+  judgments, so a match can be loose.
+- The chat has no live web search (the old Python chat did) and no saved history beyond the
+  browser's local storage; only the last 12 messages are sent each turn.
+- Two news sites block image fetching, so those cards show text only.
+- Not done: a flow map of Builderflow's own UI, more competitors (Encircle, AccuLynx, DASH), and a
+  screenshot fallback in chat.
+- The chat does not refuse off-topic questions; it is a growth-advisor demo, not a hardened product.
 
 ## Conventions
 
 - Every fetch and every LLM call is disk-cached (`data/cache/`) by content hash — re-runs
   cost nothing.
-- Every insight carries real source URLs, chunk ids, or screenshot paths, verified to
-  actually resolve (checked programmatically during development, not just eyeballed).
+- Every insight carries real source URLs, chunk ids, guide sections or screenshot paths.
 - "Not found in our data," never "Builderflow lacks X" — the tool doesn't invent absence.
 - `.env` and `data/cache/` are never committed; `data/builderflow_screens/` and the guide
   are gitignored since they're private company material.
