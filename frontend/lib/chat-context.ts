@@ -4,6 +4,27 @@ import { bundle } from "./data";
 import { shortName } from "./opportunities";
 import type { Citation } from "./types";
 
+/** The guide split at "##" headings (each section keeps its "#" chapter as a prefix), so each
+ *  section can be cited by id. The guide is ~12k tokens: small enough to send whole. */
+function guideSections(): { heading: string; body: string }[] {
+  const md = readFileSync(join(process.cwd(), "..", "data", "builderflow_guide.md"), "utf8");
+  const out: { heading: string; body: string }[] = [];
+  let chapter = "";
+  let cur: { heading: string; body: string } | null = null;
+  for (const line of md.split("\n")) {
+    const h1 = line.match(/^# (.+)/);
+    const h2 = line.match(/^## (.+)/);
+    if (h1 || h2) {
+      if (h1) chapter = h1[1].trim();
+      cur = { heading: h1 ? chapter : `${chapter} > ${h2![1].trim()}`, body: "" };
+      out.push(cur);
+    } else if (cur) cur.body += line + "\n";
+  }
+  return out.map((s) => ({ ...s, body: s.body.trim() })).filter((s) => s.body);
+}
+
+const WEBSITE_PAGES = ["homepage", "pricing", "who-we-serve"];
+
 /** Everything the chat model is allowed to answer from, as one prompt, plus a map from each
  *  item id (G3, P2, R5...) to the sources behind it. The analysis is only a few thousand tokens,
  *  so it is sent whole on every question instead of being searched. */
@@ -41,9 +62,20 @@ export function buildChatContext(): { system: string; sources: Record<string, Ci
   lines.push("", "## GROWTH IDEAS (category | title | reasoning)");
   bundle.recommendations.forEach((r, i) => add(`R${i + 1}`, `${r.category} | ${r.title} | ${r.detail}`, r.citations));
 
+  lines.push("", "## BUILDERFLOW USER GUIDE (source of truth, full text, by section)");
+  guideSections().forEach((sec, i) =>
+    add(`D${i + 1}`, `${sec.heading}\n${sec.body}`, [{ source: "guide", ref: sec.heading, note: null }]),
+  );
+
+  lines.push("", "## BUILDERFLOW PUBLIC WEBSITE (marketing copy; the guide wins where they differ)");
+  WEBSITE_PAGES.forEach((name, i) => {
+    const text = readFileSync(join(process.cwd(), "..", "data", "builderflow_site", `${name}.md`), "utf8").trim();
+    add(`W${i + 1}`, `${name}\n${text}`, [{ source: "website", ref: `builderflow.app/${name === "homepage" ? "" : name}`, note: null }]);
+  });
+
   const appSummary = readFileSync(join(process.cwd(), "..", "data", "app_summary.md"), "utf8");
 
-  const system = `You are the Builderflow Growth Intelligence assistant. You answer questions from Builderflow's founders and product leads, using ONLY the data below.
+  const system = `You are the Builderflow Growth Intelligence assistant. You answer questions from Builderflow's founders and product leads, using ONLY the data below. The guide sections [D..] hold the full how-to text: use them for questions about what a Builderflow feature does or how it works.
 
 You are a brainstorming partner in a long conversation, not a report writer. The user will start with a broad idea and then refine it over many turns.
 

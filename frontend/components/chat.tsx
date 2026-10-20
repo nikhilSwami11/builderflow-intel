@@ -2,11 +2,13 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Cites } from "@/components/cite";
 import type { ChatMessage } from "@/lib/chat-types";
+
+const STORE_KEY = "bf-chat-v1";
 
 const STARTERS = [
   "What should Builderflow fix first in Work Orders?",
@@ -71,14 +73,41 @@ const textOf = (m: ChatMessage) => m.parts.map((p) => (p.type === "text" ? p.tex
 const sourcesOf = (m: ChatMessage) => m.parts.flatMap((p) => (p.type === "data-sources" ? p.data.citations : []));
 
 export function Chat() {
-  const { messages, sendMessage, status, error } = useChat<ChatMessage>({
+  const { messages, sendMessage, setMessages, status, error } = useChat<ChatMessage>({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
   });
+  const restored = useRef(false);
   const [input, setInput] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
   const seeded = useRef(false);
   const seedQuestion = useSearchParams().get("q");
   const busy = status === "submitted" || status === "streaming";
+
+  // Keep the conversation across reloads (this browser only). A "Discuss" link (?q=) starts fresh.
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    if (seedQuestion) return;
+    try {
+      const saved = localStorage.getItem(STORE_KEY);
+      if (saved) setMessages(JSON.parse(saved));
+    } catch {}
+  }, [seedQuestion, setMessages]);
+
+  useEffect(() => {
+    if (!restored.current || status !== "ready") return;
+    try {
+      if (messages.length) localStorage.setItem(STORE_KEY, JSON.stringify(messages));
+      else localStorage.removeItem(STORE_KEY);
+    } catch {}
+  }, [messages, status]);
+
+  function newChat() {
+    setMessages([]);
+    try {
+      localStorage.removeItem(STORE_KEY);
+    } catch {}
+  }
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
@@ -104,6 +133,17 @@ export function Chat() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-rule bg-sheet">
+      {messages.length > 0 && (
+        <div className="flex justify-end border-b border-rule px-3 py-2">
+          <button
+            onClick={newChat}
+            disabled={busy}
+            className="flex items-center gap-1.5 rounded-md border border-rule-strong px-2.5 py-1 text-[12px] text-text-2 transition-colors duration-150 hover:border-accent hover:text-text disabled:opacity-40"
+          >
+            <Plus size={13} aria-hidden /> New chat
+          </button>
+        </div>
+      )}
       <div ref={scroller} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
         {messages.length === 0 && (
           <div className="mx-auto max-w-2xl pt-6">
