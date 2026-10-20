@@ -20,6 +20,7 @@ export async function POST(req: Request) {
         model,
         system,
         messages: await convertToModelMessages(messages.slice(-12)),
+        maxOutputTokens: 2000,
         providerOptions: { openai: { reasoningEffort: "low" } },
         onFinish: ({ text }) => {
           const seen = new Set<string>();

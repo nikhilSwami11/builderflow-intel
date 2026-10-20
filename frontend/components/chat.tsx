@@ -64,7 +64,8 @@ function Prose({ text }: { text: string }) {
 // half-streamed one at the end) and show the resolved sources under the answer instead.
 const ID_GROUP = /\s*\[[A-Z]{1,2}\d+(?:\s*,\s*[A-Z]{1,2}\d+)*\]/g;
 const PARTIAL_ID = /\s*\[[A-Z]{0,2}\d*(?:\s*,\s*[A-Z]{0,2}\d*)*$/;
-const clean = (t: string) => t.replace(ID_GROUP, "").replace(PARTIAL_ID, "");
+const STRAY_LINE = /^\s*(?:citations?|sources?|references?)\s*:.*$/gim;
+const clean = (t: string) => t.replace(STRAY_LINE, "").replace(ID_GROUP, "").replace(PARTIAL_ID, "").trim();
 
 const textOf = (m: ChatMessage) => m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 const sourcesOf = (m: ChatMessage) => m.parts.flatMap((p) => (p.type === "data-sources" ? p.data.citations : []));
@@ -134,6 +135,14 @@ export function Chat() {
                 <div className="mt-3">
                   <Cites citations={sourcesOf(m)} />
                 </div>
+              )}
+              {m.id === last?.id && status === "ready" && (
+                <button
+                  onClick={() => send("Go into more detail on that.")}
+                  className="mt-3 rounded-md border border-rule-strong px-2.5 py-1 text-[12px] text-text-2 transition-colors duration-150 hover:border-accent hover:text-text"
+                >
+                  More detail
+                </button>
               )}
             </div>
           ) : null,
